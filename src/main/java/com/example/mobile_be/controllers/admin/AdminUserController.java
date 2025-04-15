@@ -29,8 +29,6 @@ public class AdminUserController {
   //[GET] Lấy tất cả người dùng
   @GetMapping
   public List<User> getAllUsers() {
-    System.out.println("Thông điệp log của bạn");
-
       return userRepository.findAll();
   }
 

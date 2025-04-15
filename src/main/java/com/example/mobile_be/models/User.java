@@ -1,6 +1,8 @@
 package com.example.mobile_be.models;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
@@ -9,7 +11,9 @@ import java.util.ArrayList;
 
 
 @Data
-@Document(collection = "users")
+@EqualsAndHashCode(callSuper = false)
+
+@Document(collection = "user")
 public class User extends BaseDocument {
  @Id
     private ObjectId id;
