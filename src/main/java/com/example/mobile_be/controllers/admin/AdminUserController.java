@@ -19,20 +19,21 @@ import java.util.Optional;
 @RequestMapping("/api/admin/users")
 @CrossOrigin(origins = "*")
 
-//http://localhost:8081/api/admin/users/...
 
 public class AdminUserController {
 
  @Autowired
   private UserRepository userRepository;
 
-  //[GET] Lấy tất cả người dùng
+  //[GET]   http://localhost:8081/api/admin/users
+  //Lấy tất cả người dùng
   @GetMapping
   public List<User> getAllUsers() {
       return userRepository.findAll();
   }
 
-  //[GET] Lấy người dùng theo ID
+  //[GET]  http://localhost:8081/api/admin/users/{id}
+  //Lấy người dùng theo ID
   @GetMapping("/{id}")
   public ResponseEntity<?> getUserById(@PathVariable ("id") String id) {
    try {
@@ -48,19 +49,16 @@ public class AdminUserController {
    }
   }
 
-  //[POST] Tạo 1 người dùng mới
+  //[POST] http://localhost:8081/api/admin/users/create
+  //Tạo 1 người dùng mới
   @PostMapping("/create")
   public User postUser(@RequestBody User user) {
       return userRepository.save(user);
   }
 
 
-    //[PATCH] Cập nhật người dùng
-    // @PutMapping("/change/{id}")
-    // public ResponseEntity<User> updateUser(@PathVariable("id") String id, @RequestBody User userData) {
-    //     if (!ObjectId.isValid(id)) {
-    //         return ResponseEntity.badRequest().build();
-    //     }
+    //[PATCH] http://localhost:8081/api/admin/users/change/{id}
+    //Cập nhật người dùng
      @PatchMapping("/change/{id}")
 public ResponseEntity<User> patchUser(@PathVariable("id") String id, @RequestBody User userData) {
     if (!ObjectId.isValid(id)) {
@@ -96,7 +94,8 @@ public ResponseEntity<User> patchUser(@PathVariable("id") String id, @RequestBod
     }
 }
 
-    //[DELETE] Xóa người dùng
+    //[DELETE]   http://localhost:8081/api/admin/users/delete/{id}
+    //Xóa người dùng
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         ObjectId objectId = new ObjectId(id); 
