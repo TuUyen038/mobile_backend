@@ -55,13 +55,13 @@ public class AdminUserController {
   }
 
 
-    //[PUT] Cập nhật người dùng
+    //[PATCH] Cập nhật người dùng
     // @PutMapping("/change/{id}")
     // public ResponseEntity<User> updateUser(@PathVariable("id") String id, @RequestBody User userData) {
     //     if (!ObjectId.isValid(id)) {
     //         return ResponseEntity.badRequest().build();
     //     }
-     @PutMapping("/change/{id}")
+     @PatchMapping("/change/{id}")
 public ResponseEntity<User> patchUser(@PathVariable("id") String id, @RequestBody User userData) {
     if (!ObjectId.isValid(id)) {
         return ResponseEntity.badRequest().build();
