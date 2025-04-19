@@ -14,6 +14,9 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 @RequestMapping("/api/playlist")
@@ -44,9 +47,19 @@ public class CommonPlaylistController {
    }catch (Exception e) {
     e.printStackTrace();
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body("Đã có lỗi: " + e.getMessage());
+        .body("Đã có lỗi o getbyId: " + e.getMessage());
    }
   }
+
+
+  //[GET] http://localhost:8081/api/playlist/search?keyword=...
+  // tìm kiếm playlist theo tên
+  @GetMapping("/search")
+  public ResponseEntity<List<Playlist>> searchPlaylistByName(@RequestParam String keyword) {
+    List<Playlist> playlists = playlistRepository.findByNameContainingIgnoreCase(keyword);
+    return ResponseEntity.ok(playlists);
+  }
+  
 
  // [POST] http://localhost:8081/api/playlist/create
  // tạo playlist
@@ -54,6 +67,7 @@ public class CommonPlaylistController {
  public Playlist postUser(@RequestBody Playlist playlist) {
   return playlistRepository.save(playlist);
  }
+
 
  // [PATCH] http://localhost:8081/api/playlist/change/{playlistId}
  // Chỉ bao gồm thay đổi tên playlist, mô tả playlist
@@ -81,8 +95,9 @@ public class CommonPlaylistController {
 
  }
 
+
  //[PATCH]  http://localhost:8081/api/playlist/{playlistId}/addSong
- //them 1 song vao playlist
+ //them 1 bat hat vao playlist
  @PatchMapping("/{playlistId}/addSong") 
  public ResponseEntity<Playlist> addSongToPlaylist (@PathVariable ("playlistId") String playlistId,@RequestBody Map<String, String> updates) {
   ObjectId playlistObjId = new ObjectId(playlistId);
@@ -101,7 +116,7 @@ public class CommonPlaylistController {
 
 
  //[PATCH]  http://localhost:8081/api/playlist/{playlistId}/removeSong
- //xoa 1 song khoi playlist
+ //xoa 1 bai hat khoi playlist
  @PatchMapping("/{playlistId}/removeSong/{removeId}") 
  public ResponseEntity<Playlist> RemoveSongFromPlaylist (@PathVariable ("playlistId") String playlistId, @PathVariable ("removeId") String removeId) {
   ObjectId playlistObjId = new ObjectId(playlistId);

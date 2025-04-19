@@ -13,21 +13,23 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/comment")
 @CrossOrigin(origins = "*")
 
-//http://localhost:8081/api/comment/...
-
 //Comment se duoc tao moi, xoa chu khong co sua
 
 public class CommonCommentController {
  @Autowired
   private CommentRepository feedbackRepository;
 
-  //[POST] Tạo comment 
+
+  //[POST] http://localhost:8081/api/comment/create
+  //Tạo comment 
   @PostMapping("/create")
   public Comment postUser(@RequestBody Comment feedback) {
       return feedbackRepository.save(feedback);
   }
 
-    //[DELETE] Xóa comment
+
+    //[DELETE]  http://localhost:8081/api/comment/delete/{id}
+    //Xóa comment
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         ObjectId objectId = new ObjectId(id); 
