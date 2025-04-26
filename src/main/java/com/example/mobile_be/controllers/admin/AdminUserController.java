@@ -29,7 +29,6 @@ public class AdminUserController {
         return userRepository.findAll();
     }
 
-    
     // [GET] http://localhost:8081/api/admin/users/{id}
     // Lấy người dùng theo ID
     @GetMapping("/{id}")
@@ -46,7 +45,6 @@ public class AdminUserController {
                     .body("Đã có lỗi: " + e.getMessage());
         }
     }
-
 
     // [GET] http://localhost:8081/api/admin/users/search?keyword=...
     // Tìm kiếm người dùng theo tên

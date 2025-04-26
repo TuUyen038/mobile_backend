@@ -11,16 +11,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/comment")
 
-
 public class AdminCommentController {
- @Autowired
-  private CommentRepository feedbackRepository;
+    @Autowired
+    private CommentRepository feedbackRepository;
 
-  //[GET]  http://localhost:8081/api/admin/comment
-  //Lấy tất cả comment
-  @GetMapping
-  public List<Comment> getAllFeedbacks() {
-      return feedbackRepository.findAll();
-  }
+    // [GET] http://localhost:8081/api/admin/comment
+    // Lấy tất cả comment
+    @GetMapping
+    public List<Comment> getAllFeedbacks() {
+        return feedbackRepository.findAll();
+    }
 
- }
+}
