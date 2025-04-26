@@ -2,11 +2,13 @@ package com.example.mobile_be.controllers.admin;
 
 import com.example.mobile_be.models.User;
 import com.example.mobile_be.repository.UserRepository;
+import com.example.mobile_be.security.UserDetailsImpl;
 
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,7 +16,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/admin/users")
-@CrossOrigin(origins = "*")
 
 public class AdminUserController {
 
@@ -55,26 +56,17 @@ public class AdminUserController {
         return ResponseEntity.ok(users);
     }
 
-    // [POST] http://localhost:8081/api/admin/users/create
-    // Tạo 1 người dùng mới
-    @PostMapping("/create")
-    public User postUser(@RequestBody User user) {
-        return userRepository.save(user);
-    }
-
-    // [PATCH] http://localhost:8081/api/admin/users/change/{id}
+     // [PATCH] http://localhost:8081/api/admin/users/change
     // Cập nhật người dùng
     @PatchMapping("/change/{id}")
-    public ResponseEntity<User> patchUser(@PathVariable("id") String id, @RequestBody User userData) {
-        if (!ObjectId.isValid(id)) {
-            return ResponseEntity.badRequest().build();
+    public ResponseEntity<?> patchUser(@PathVariable("id") String id, @RequestBody User userData) {
+        
+        Optional<User> user = userRepository.findById(new ObjectId(id));
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found in /admin/users/change");
         }
-        ObjectId objectId = new ObjectId(id);
-        Optional<User> optionalUser = userRepository.findById(objectId);
-
-        if (optionalUser.isPresent()) {
-            User existingUser = optionalUser.get();
-
+    
+        User existingUser = user.get();
             if (userData.getName() != null) {
 
                 existingUser.setName(userData.getName());
@@ -93,12 +85,10 @@ public class AdminUserController {
                 existingUser.setFavorite_song(userData.getFavorite_song());
             }
 
-            return ResponseEntity.ok(userRepository.save(existingUser));
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
- 
+            User updatedUser = userRepository.save(existingUser);
+            return ResponseEntity.ok(updatedUser);}
+
+
 
     // [DELETE] http://localhost:8081/api/admin/users/delete/{id}
     // Xóa người dùng
