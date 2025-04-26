@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/comment")
-@CrossOrigin(origins = "*")
 
 public class AdminCommentController {
     @Autowired

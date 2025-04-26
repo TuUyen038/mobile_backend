@@ -10,8 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping("/api/comment")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/common/comment")
 
 //Comment se duoc tao moi, xoa chu khong co sua
 

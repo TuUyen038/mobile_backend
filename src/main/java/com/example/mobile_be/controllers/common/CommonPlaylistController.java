@@ -19,8 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 
 @RestController
-@RequestMapping("/api/playlist")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/common/playlist")
 
 public class CommonPlaylistController {
  @Autowired
