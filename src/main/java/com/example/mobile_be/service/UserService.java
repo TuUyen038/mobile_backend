@@ -32,9 +32,12 @@ public class UserService implements UserDetailsService {
  public User register(RegisterRequest request) {
   User user = new User();
   user.setEmail(request.getEmail());
-  user.setName(request.getName());
+  user.setFirstName(request.getFirstName());
+  user.setLastName(request.getLastName());
   user.setPassword(passwordEncoder.encode(request.getPassword()));
   user.setRole(request.getRole());
+  user.setFullName(request.getFirstName() + " " + request.getLastName());
+  user.setIsVerifiedArtist(false);
   return userRepository.save(user);
  }
 

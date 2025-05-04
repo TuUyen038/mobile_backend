@@ -9,7 +9,6 @@ import com.example.mobile_be.security.JwtUtil;
 import com.example.mobile_be.security.UserDetailsImpl;
 import com.example.mobile_be.service.UserService;
 
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +16,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -34,16 +32,16 @@ public class CommonUserController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // [GET] http://localhost:8081/api/users/search?keyword=...
+    // [GET] http://localhost:8081/api/common/users/search?keyword=...
     // Tìm kiếm người dùng theo tên
     @GetMapping("/search")
     public ResponseEntity<List<User>> searchUsersByName(@RequestParam String keyword) {
-        List<User> users = userRepository.findByNameContainingIgnoreCase(keyword);
+        List<User> users = userRepository.findByFullNameContainingIgnoreCase(keyword);
         return ResponseEntity.ok(users);
     }
 
-    // [POST] http://localhost:8081/api/users/register
-    // Đăng ký
+    // [POST] http://localhost:8081/api/common/users/register
+    // Đăng ký (user nhap email, password, firstName, lastName)
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -58,19 +56,17 @@ public class CommonUserController {
         return ResponseEntity.ok(new AuthResponse(token));
     }
 
-    // [GET] http://localhost:8081/api/users/me
+    // [GET] http://localhost:8081/api/common/users/me
     @GetMapping("/me")
     public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         if (userDetails == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
 
-        return ResponseEntity.ok(Map.of(
-                "username", userDetails.getName(),
-                "email", userDetails.getEmail()));
+        return ResponseEntity.ok(userDetails.getUser());
     }
 
-    // [POST] http://localhost:8081/api/users/login
+    // [POST] http://localhost:8081/api/common/users/login
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         User user = userService.authenticate(request.getEmail(), request.getPassword());
@@ -78,8 +74,8 @@ public class CommonUserController {
         return ResponseEntity.ok(new AuthResponse(token));
     }
 
-    // [PATCH] http://localhost:8081/api/users/me/change
-    // Cập nhật người dùng
+    // [PATCH] http://localhost:8081/api/common/users/me/change
+    //người dùng tự chỉnh sửa thông tin cá nhân
     @PatchMapping("/me/change")
     public ResponseEntity<?> patchUser(@AuthenticationPrincipal UserDetailsImpl userDetails, @RequestBody User userData) {
         if (userDetails == null) {
@@ -92,22 +88,24 @@ public class CommonUserController {
         }
     
         User existingUser = user.get();
-            if (userData.getName() != null) {
-
-                existingUser.setName(userData.getName());
-            }
+            
             if (userData.getEmail() != null) {
                 existingUser.setEmail(userData.getEmail());
             }
-
-            if (userData.getRole() != null) {
-                existingUser.setRole(userData.getRole());
+            if (userData.getAvatarUrl() != null) {
+                existingUser.setAvatarUrl(userData.getAvatarUrl());
             }
-            if (userData.getAvatar_url() != null) {
-                existingUser.setAvatar_url(userData.getAvatar_url());
+            if (userData.getBio() != null) {
+                existingUser.setBio(userData.getBio());
             }
-            if (userData.getFavorite_song() != null) {
-                existingUser.setFavorite_song(userData.getFavorite_song());
+            if (userData.getFirstName() != null) {
+                existingUser.setFirstName(userData.getFirstName());
+            }
+            if (userData.getLastName() != null) {
+                existingUser.setLastName(userData.getLastName());
+            }
+            if (userData.getResetToken() != null) {
+                existingUser.setResetToken(userData.getResetToken());
             }
 
             User updatedUser = userRepository.save(existingUser);

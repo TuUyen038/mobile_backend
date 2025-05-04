@@ -16,8 +16,10 @@ public class Playlist extends BaseDocument {
  private ObjectId id;
  private String name;
  private String description;
- private List<String> songs = new ArrayList<>();
+ private ArrayList<String> songs = new ArrayList<>();
  private String user_id;
+ private String thumbnailUrl;
+ private Boolean isPublic;
 
  public String getId() {
      return id!= null ? id.toHexString() : null;

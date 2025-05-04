@@ -19,7 +19,7 @@ public class CommonCommentController {
   private CommentRepository feedbackRepository;
 
 
-  //[POST] http://localhost:8081/api/comment/create
+  //[POST] http://localhost:8081/api/common/comment/create
   //Tạo comment 
   @PostMapping("/create")
   public Comment postUser(@RequestBody Comment feedback) {
@@ -27,7 +27,7 @@ public class CommonCommentController {
   }
 
 
-    //[DELETE]  http://localhost:8081/api/comment/delete/{id}
+    //[DELETE]  http://localhost:8081/api/common/comment/delete/{id}
     //Xóa comment
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {

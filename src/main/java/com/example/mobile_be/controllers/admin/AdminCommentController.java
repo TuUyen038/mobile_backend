@@ -21,5 +21,4 @@ public class AdminCommentController {
     public List<Comment> getAllFeedbacks() {
         return feedbackRepository.findAll();
     }
-
 }
