@@ -10,8 +10,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface UserRepository extends MongoRepository<User, ObjectId> {
-    List<User> findByNameContainingIgnoreCase(String keyword);
+    List<User> findByFullNameContainingIgnoreCase(String keyword);
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
-    Optional<User> findByName(String name);
 }

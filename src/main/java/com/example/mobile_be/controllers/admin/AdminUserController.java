@@ -30,7 +30,7 @@ public class AdminUserController {
     }
 
     // [GET] http://localhost:8081/api/admin/users/{id}
-    // Lấy người dùng theo ID
+    // Tim kiem người dùng theo ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable("id") String id) {
         try {
@@ -45,17 +45,9 @@ public class AdminUserController {
                     .body("Đã có lỗi: " + e.getMessage());
         }
     }
-
-    // [GET] http://localhost:8081/api/admin/users/search?keyword=...
-    // Tìm kiếm người dùng theo tên
-    @GetMapping("/search")
-    public ResponseEntity<List<User>> searchUsersByName(@RequestParam String keyword) {
-        List<User> users = userRepository.findByNameContainingIgnoreCase(keyword);
-        return ResponseEntity.ok(users);
-    }
-
+  
      // [PATCH] http://localhost:8081/api/admin/users/change
-    // Cập nhật người dùng
+    // admin chi co the sua isVerifiedArtist va role cua nguoi dung
     @PatchMapping("/change/{id}")
     public ResponseEntity<?> patchUser(@PathVariable("id") String id, @RequestBody User userData) {
         
@@ -65,24 +57,12 @@ public class AdminUserController {
         }
     
         User existingUser = user.get();
-            if (userData.getName() != null) {
-
-                existingUser.setName(userData.getName());
-            }
-            if (userData.getEmail() != null) {
-                existingUser.setEmail(userData.getEmail());
-            }
-
             if (userData.getRole() != null) {
                 existingUser.setRole(userData.getRole());
             }
-            if (userData.getAvatar_url() != null) {
-                existingUser.setAvatar_url(userData.getAvatar_url());
+            if (userData.getIsVerifiedArtist() != null) {
+                existingUser.setIsVerifiedArtist(userData.getIsVerifiedArtist());
             }
-            if (userData.getFavorite_song() != null) {
-                existingUser.setFavorite_song(userData.getFavorite_song());
-            }
-
             User updatedUser = userRepository.save(existingUser);
             return ResponseEntity.ok(updatedUser);}
 

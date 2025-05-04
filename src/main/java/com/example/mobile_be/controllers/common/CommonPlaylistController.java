@@ -25,7 +25,7 @@ public class CommonPlaylistController {
  @Autowired
  private PlaylistRepository playlistRepository;
 
- // [GET] http://localhost:8081/api/playlist
+ // [GET] http://localhost:8081/api/common/playlist
  // lấy tất cả playlist
  @GetMapping
  public List<Playlist> getAllPlaylists() {
@@ -33,7 +33,7 @@ public class CommonPlaylistController {
  }
 
 
- //[GET] http://localhost:8081/api/playlist/{playlistId}
+ //[GET] http://localhost:8081/api/common/playlist/{playlistId}
  // lấy playlist theo ID
 @GetMapping("/{id}")
  public ResponseEntity<?> getPlaylistById(@PathVariable ("id") String id) {
@@ -51,7 +51,7 @@ public class CommonPlaylistController {
   }
 
 
-  //[GET] http://localhost:8081/api/playlist/search?keyword=...
+  //[GET] http://localhost:8081/api/commonplaylist/search?keyword=...
   // tìm kiếm playlist theo tên
   @GetMapping("/search")
   public ResponseEntity<List<Playlist>> searchPlaylistByName(@RequestParam String keyword) {
@@ -69,7 +69,7 @@ public class CommonPlaylistController {
 
 
  // [PATCH] http://localhost:8081/api/playlist/change/{playlistId}
- // Chỉ bao gồm thay đổi tên playlist, mô tả playlist
+ // Chỉ bao gồm thay đổi name, thumbmail, description
  //neu thay doi thuoc tinh khac thi mac du 200 OK nhung thuoc tinh do van k bi thay doi
  @PatchMapping("/change/{id}")
  public ResponseEntity<Playlist> updateUser(@PathVariable ("id") String id, @RequestBody Map<String, Object> updates) {
@@ -77,7 +77,7 @@ public class CommonPlaylistController {
   Playlist playlist = playlistRepository.findById(objectId)
     .orElseThrow(() -> new RuntimeException("Playlist not found"));
 
-  List<String> allowedFields = List.of("name", "description");
+  List<String> allowedFields = List.of("name", "description", "thumbnail");
 
   updates.forEach((key, value) -> {
    if (allowedFields.contains(key)) {
@@ -114,7 +114,7 @@ public class CommonPlaylistController {
  }
 
 
- //[PATCH]  http://localhost:8081/api/playlist/{playlistId}/removeSong
+ //[PATCH]  http://localhost:8081/api/common/playlist/{playlistId}/removeSong
  //xoa 1 bai hat khoi playlist
  @PatchMapping("/{playlistId}/removeSong/{removeId}") 
  public ResponseEntity<Playlist> RemoveSongFromPlaylist (@PathVariable ("playlistId") String playlistId, @PathVariable ("removeId") String removeId) {
@@ -132,7 +132,7 @@ public class CommonPlaylistController {
  }
 
 
- // [DELETE] http://localhost:8081/api/playlist/delete/{id}
+ // [DELETE] http://localhost:8081/api/common/playlist/delete/{id}
  // xoá playlist
  @DeleteMapping("/delete/{id}")
  public ResponseEntity<Void> deleteUser(@PathVariable String id) {

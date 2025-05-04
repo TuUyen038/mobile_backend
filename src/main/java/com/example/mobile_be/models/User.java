@@ -6,7 +6,8 @@ import lombok.EqualsAndHashCode;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
-import java.util.List;
+
+import java.util.ArrayList;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -17,10 +18,14 @@ public class User extends BaseDocument {
     private ObjectId id;
     private String email;
     private String password;
-    private String name;
+    private String firstName;
+    private String lastName;
+    private String fullName;
     private String role;
-    private String avatar_url;
-    private List<String> favorite_song;
+    private String avatarUrl;
+    private String bio;
+    private Boolean isVerifiedArtist;
+    private String resetToken;
     public ObjectId getObjectId() {
         return id;
     }

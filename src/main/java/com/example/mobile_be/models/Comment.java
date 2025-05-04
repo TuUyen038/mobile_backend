@@ -16,9 +16,8 @@ public class Comment extends BaseDocument {
   private ObjectId id;
   private ObjectId user_id;
   private String content;
-  private ArrayList<ObjectId> admin_reply;
+  private ObjectId parentCommentId;
   private ObjectId song_id;
-  private String status;
 
   public String getId() {
     return id != null ? id.toHexString() : null;

@@ -36,8 +36,11 @@ public class UserDetailsImpl implements UserDetails {
     public String getEmail() {
         return user.getEmail();
     }
-    public String getName() {
-        return user.getName();
+    public String getFirstName() {
+        return user.getFirstName();
+    }
+    public String getLastName() {
+        return user.getLastName();
     }
 
     @Override
