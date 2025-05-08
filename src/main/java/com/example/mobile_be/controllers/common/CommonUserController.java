@@ -1,8 +1,5 @@
 package com.example.mobile_be.controllers.common;
 
-import com.example.mobile_be.dto.AuthResponse;
-import com.example.mobile_be.dto.LoginRequest;
-import com.example.mobile_be.dto.RegisterRequest;
 import com.example.mobile_be.models.User;
 import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.security.JwtUtil;

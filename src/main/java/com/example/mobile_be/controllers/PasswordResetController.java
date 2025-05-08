@@ -1,12 +1,7 @@
 package com.example.mobile_be.controllers;
 
 import com.example.mobile_be.dto.ForgotPasswordRequest;
-import com.example.mobile_be.models.PasswordResetToken;
-import com.example.mobile_be.repository.PasswordResetTokenRepository;
 import com.example.mobile_be.service.UserService;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,7 +16,6 @@ public class PasswordResetController {
     private UserService userService;
 
     @Autowired
-    private PasswordResetTokenRepository passwordResetTokenRepository;
 
     @PostMapping("/forgot")
     public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
@@ -43,16 +37,4 @@ public class PasswordResetController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired token.");
         }
     }
-
-    @GetMapping("/test-insert")
-    public String testInsert() {
-        PasswordResetToken token = new PasswordResetToken();
-        token.setToken("test-token");
-        token.setEmail("test@example.com");
-        token.setCreatedAt(Instant.now());
-        token.setExpiresAt(Instant.now().plus(30, ChronoUnit.MINUTES));
-        passwordResetTokenRepository.save(token);
-        return "saved";
-    }
-
 }
