@@ -45,10 +45,16 @@ dependencies {
     // DevTools (for development mode)
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+
+    //send Email
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    
 }
 
 tasks.named('test') {

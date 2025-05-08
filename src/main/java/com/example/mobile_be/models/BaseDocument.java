@@ -4,8 +4,10 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import java.time.Instant;
+import lombok.Data;
 
+import java.time.Instant;
+@Data
 public abstract class BaseDocument {
     @CreatedDate
     @Field("createdAt")

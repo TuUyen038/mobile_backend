@@ -40,22 +40,7 @@ public class CommonUserController {
         return ResponseEntity.ok(users);
     }
 
-    // [POST] http://localhost:8081/api/common/users/register
-    // Đăng ký (user nhap email, password, firstName, lastName)
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity.badRequest().body("Email already used.");
-        }
-        if (request.getRole() == null || request.getRole().isEmpty()) {
-            request.setRole("ROLE_USER");
-        }
-        
-        User saved = userService.register(request);
-        String token = jwtUtil.generateToken(new UserDetailsImpl(saved));
-        return ResponseEntity.ok(new AuthResponse(token));
-    }
-
+  
     // [GET] http://localhost:8081/api/common/users/me
     @GetMapping("/me")
     public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {
@@ -66,13 +51,6 @@ public class CommonUserController {
         return ResponseEntity.ok(userDetails.getUser());
     }
 
-    // [POST] http://localhost:8081/api/common/users/login
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        User user = userService.authenticate(request.getEmail(), request.getPassword());
-        String token = jwtUtil.generateToken(new UserDetailsImpl(user));
-        return ResponseEntity.ok(new AuthResponse(token));
-    }
 
     // [PATCH] http://localhost:8081/api/common/users/me/change
     //người dùng tự chỉnh sửa thông tin cá nhân
