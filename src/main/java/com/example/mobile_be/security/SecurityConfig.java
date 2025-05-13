@@ -17,17 +17,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import jakarta.annotation.PostConstruct;
-
 @Configuration
 @EnableWebSecurity
 
 public class SecurityConfig {
-    @PostConstruct
-    public void enableSpringSecurityDebugging() {
-        System.setProperty("org.springframework.security.debug", "true");
-    }
-
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -37,9 +30,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/common/users/login", "/api/common/users/register").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/common/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/login", "/api/register", "/api/verify-email","/api/resend-otp", "/api/password/**", "/api/artist/song/**", "/error").permitAll()
+                     //   .requestMatchers("/api/**").permitAll()
+                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                         .requestMatchers("/api/artist/**").hasAnyRole("ARTIST", "ADMIN")
+                         .requestMatchers("/api/common/**").hasAnyRole("USER", "ADMIN", "ARTIST")
                         .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
@@ -53,7 +48,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of("*")); 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true); 
+        config.setAllowCredentials(false); 
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

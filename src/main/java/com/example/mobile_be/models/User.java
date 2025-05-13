@@ -18,13 +18,13 @@ public class User extends BaseDocument {
     private ObjectId id;
     private String email;
     private String password;
-    private String firstName;
     private String lastName;
     private String fullName;
     private String role;
     private String avatarUrl;
     private String bio;
     private Boolean isVerifiedArtist;
+    private Boolean isVerified;
     private String resetToken;
     public ObjectId getObjectId() {
         return id;

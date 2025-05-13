@@ -3,6 +3,8 @@ package com.example.mobile_be.controllers.common;
 import com.example.mobile_be.models.Comment;
 import com.example.mobile_be.repository.CommentRepository;
 
+import java.util.List;
+
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,12 @@ public class CommonCommentController {
       return feedbackRepository.save(feedback);
   }
 
+   // [GET] http://localhost:8081/api/common/comment
+    // Lấy tất cả comment của song đó
+    @GetMapping
+    public List<Comment> getAllFeedbacks() {
+        return feedbackRepository.findAll();
+    }
 
     //[DELETE]  http://localhost:8081/api/common/comment/delete/{id}
     //Xóa comment

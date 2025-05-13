@@ -13,4 +13,9 @@ public interface UserRepository extends MongoRepository<User, ObjectId> {
     List<User> findByFullNameContainingIgnoreCase(String keyword);
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
+    Optional<User> findById(String id);
+    Optional<User> findByResetToken(String token);
+    List<User> findByIsVerifiedArtistFalse(); 
+    List<User> findByIsVerifiedArtistTrue();
+
 }

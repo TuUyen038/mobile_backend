@@ -17,7 +17,7 @@ public class Playlist extends BaseDocument {
  private String name;
  private String description;
  private ArrayList<String> songs = new ArrayList<>();
- private String user_id;
+ private String userId;
  private String thumbnailUrl;
  private Boolean isPublic;
 

@@ -2,13 +2,11 @@ package com.example.mobile_be.controllers.admin;
 
 import com.example.mobile_be.models.User;
 import com.example.mobile_be.repository.UserRepository;
-import com.example.mobile_be.security.UserDetailsImpl;
 
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,9 +22,15 @@ public class AdminUserController {
 
     // [GET] http://localhost:8081/api/admin/users
     // Lấy tất cả người dùng
-    @GetMapping
+    @GetMapping()
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        return userRepository.findByIsVerifiedArtistFalse();
+    }
+
+    // Lay danh sach artist
+    @GetMapping("/artists")
+    public List<User> getAllArtist() {
+        return userRepository.findByIsVerifiedArtistTrue();
     }
 
     // [GET] http://localhost:8081/api/admin/users/{id}
@@ -45,28 +49,22 @@ public class AdminUserController {
                     .body("Đã có lỗi: " + e.getMessage());
         }
     }
-  
-     // [PATCH] http://localhost:8081/api/admin/users/change
+
+    // [PATCH] http://localhost:8081/api/admin/users/change
     // admin chi co the sua isVerifiedArtist va role cua nguoi dung
-    @PatchMapping("/change/{id}")
-    public ResponseEntity<?> patchUser(@PathVariable("id") String id, @RequestBody User userData) {
-        
-        Optional<User> user = userRepository.findById(new ObjectId(id));
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found in /admin/users/change");
-        }
-    
-        User existingUser = user.get();
-            if (userData.getRole() != null) {
-                existingUser.setRole(userData.getRole());
-            }
-            if (userData.getIsVerifiedArtist() != null) {
-                existingUser.setIsVerifiedArtist(userData.getIsVerifiedArtist());
-            }
-            User updatedUser = userRepository.save(existingUser);
-            return ResponseEntity.ok(updatedUser);}
-
-
+    // @PatchMapping("/change/{id}")
+    // public ResponseEntity<?> patchUser(@PathVariable("id") String id,
+    // @RequestBody User userData) {
+    // Optional<User> user = userRepository.findById(new ObjectId(id));
+    // if (user.isEmpty()) {
+    // return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found in
+    // /admin/users/change");
+    // }
+    // User existingUser = user.get();
+    // existingUser.setIsVerifiedArtist(true);
+    // User updatedUser = userRepository.save(existingUser);
+    // return ResponseEntity.ok(updatedUser);
+    // }
 
     // [DELETE] http://localhost:8081/api/admin/users/delete/{id}
     // Xóa người dùng
