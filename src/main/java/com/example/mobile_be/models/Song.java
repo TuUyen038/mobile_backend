@@ -16,6 +16,7 @@ public class Song extends BaseDocument {
     @Id
     private ObjectId id;
     private ObjectId artist_id;
+    private String description;
     private String title;
     private String audioUrl;
     private String coverImageUrl;

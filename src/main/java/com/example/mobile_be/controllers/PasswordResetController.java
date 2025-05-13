@@ -1,6 +1,7 @@
 package com.example.mobile_be.controllers;
 
 import com.example.mobile_be.dto.ForgotPasswordRequest;
+import com.example.mobile_be.dto.ResetPasswordRequest;
 import com.example.mobile_be.service.UserService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,21 +16,18 @@ public class PasswordResetController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-
     @PostMapping("/forgot")
     public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         boolean success = userService.requestPasswordReset(request.getEmail());
         if (success) {
-            return ResponseEntity.ok("A password reset link has been sent to your email.");
+            return ResponseEntity.ok("A OTP has been sent to your email.");
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found!");
     }
 
     @PostMapping("/reset")
-    public ResponseEntity<String> resetPassword(@RequestParam(name = "token") String token,
-            @RequestParam(name = "newPassword") String newPassword) {
-        boolean success = userService.resetPassword(token, newPassword);
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        boolean success = userService.resetPasswordWithOtp(request);
         if (success) {
             return ResponseEntity.ok("Your password has been reset successfully.");
 

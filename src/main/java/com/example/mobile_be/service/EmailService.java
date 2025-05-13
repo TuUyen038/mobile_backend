@@ -16,27 +16,32 @@ public class EmailService {
 
   // format email
   public void sendEmail(String to, String subject, String content) {
+    try {
     SimpleMailMessage message = new SimpleMailMessage();
     message.setTo(to);
     message.setSubject(subject);
     message.setText(content);
     message.setFrom(adminEmail);
-
     mailSender.send(message);
     System.out.println("Email sent to " + to + " with subject: " + subject);
-
+  } catch (Exception e) {
+    System.err.println("Failed to send email: " + e.getMessage());
+    e.printStackTrace();
+  }
   }
 
   // noi dug trong mail gui user
   //doan nay can doi lai reset link cho dung voi frontend
-  public void sendPasswordResetEmail(String to, String token) {
-    String resetLink = "http://localhost:3000/reset-password?token=" + token;
-    String subject = "Đặt lại mật khẩu tài khoản";
-    String content = "Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào liên kết sau để thực hiện:\n"
-        + resetLink + "\n\n"
-        + "Liên kết có hiệu lực trong 30 phút.\n";
+  public void sendPasswordResetOTP(String to, String otp) {
+    String subject = "Mã OTP đặt lại mật khẩu tài khoản";
+    String content = "Bạn đã yêu cầu đặt lại mật khẩu.\n"
+        + "Mã OTP của bạn là: " + otp + "\n\n"
+        + "Mã OTP có hiệu lực trong 30 phút.\n"
+        + "Nếu bạn không yêu cầu điều này, hãy bỏ qua email này.";
 
     sendEmail(to, subject, content);
-    System.out.println("Reset link: " + resetLink);
+    System.out.println("OTP: " + otp);
   }
+
+  
 }
