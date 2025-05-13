@@ -5,6 +5,8 @@ import java.util.Optional;
 import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,7 +18,10 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.mobile_be.service.SongService;
 import com.example.mobile_be.dto.SongRequest;
 import com.example.mobile_be.models.Song;
+import com.example.mobile_be.models.User;
 import com.example.mobile_be.repository.SongRepository;
+import com.example.mobile_be.repository.UserRepository;
+import com.example.mobile_be.security.UserDetailsImpl;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,27 +33,35 @@ import org.springframework.web.bind.annotation.PathVariable;
 public class SongController {
  private final SongService songService;
  private final SongRepository songRepository;
- public SongController(SongService s, SongRepository r) {
+ private final UserRepository userRepository;
+
+ public SongController(SongService s, SongRepository r, UserRepository u) {
   songService = s;
   songRepository = r;
+  userRepository = u;
  }
 
-
+ private User getCurrentUser() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+    return userRepository.findById(userDetails.getId())
+        .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+  }
  // add song
  @PostMapping("/add")
  public ResponseEntity<?> addSong(@RequestPart("file") MultipartFile file, @RequestPart("title") String title,
- @RequestPart("artistId") String artistId, @RequestPart("description") String description,
+ @RequestPart("description") String description,
  @RequestPart("coverImageUrl") String coverImageUrl) {
+    User user = getCurrentUser();
+
   try {
    Song song = new Song();
+   song.setArtist_id(user.getId());
    if (coverImageUrl != null && coverImageUrl.trim().length() != 0) {
     song.setCoverImageUrl(coverImageUrl);
    }
    if (title != null && title.trim().length() != 0) {
     song.setTitle(title);
-   }
-   if (artistId != null) {
-    song.setArtist_id(new ObjectId(artistId));
    }
    if (description != null &&description.trim().length() != 0) {
     song.setDescription(description);
@@ -93,11 +106,15 @@ public class SongController {
  //edit song
  @PutMapping("/edit/{id}")
  public ResponseEntity<?> editSong(@PathVariable("id") String id, @RequestBody SongRequest request) {
+  getCurrentUser();
+  
+  
   ObjectId oId = new ObjectId(id);
   Optional<Song> song0 = songRepository.findById(oId);
   if (song0.isEmpty()) {
    return ResponseEntity.status(404).body("Song not found!!");
   }
+  
   Song song = song0.get();
   try {
    if (request.getCoverImageUrl() != null) {
