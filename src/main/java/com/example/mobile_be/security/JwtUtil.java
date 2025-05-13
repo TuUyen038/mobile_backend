@@ -20,7 +20,8 @@ import io.jsonwebtoken.security.Keys;
 public class JwtUtil {
  SecretKey key = Keys.hmacShaKeyFor("zemo_super_secret_key_2024_secure_for_jwt_demo".getBytes(StandardCharsets.UTF_8));
 
- private final long EXPIRATION_TIME = 86400000; 
+ //2 ngày
+ private final long EXPIRATION_TIME = 86400000*2; 
 
  //Tao token tu user name
  public String generateToken(UserDetails userDetails) {
