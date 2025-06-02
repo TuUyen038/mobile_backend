@@ -16,6 +16,8 @@ public class Genre extends BaseDocument {
     private ObjectId id;
     private String name;
     private String description;
+    private String thumbnailUrl;
+
 
     public String getId() {
         return id != null ? id.toHexString() : null;
