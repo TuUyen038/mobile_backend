@@ -15,7 +15,7 @@ import java.util.ArrayList;
 public class Song extends BaseDocument {
     @Id
     private ObjectId id;
-    private String artist_id;
+    private String artistId;
     private String description;
     private String title;
     private String audioUrl;

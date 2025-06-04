@@ -12,10 +12,10 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 @Document(collection = "resetToken")
 public class PasswordResetToken {
- @Id
- private ObjectId id;
- private String token;
- private String email;
- private Instant expiresAt;
- private Instant createdAt;
+    @Id
+    private ObjectId id;
+    private String token;
+    private String email;
+    private Instant expiresAt;
+    private Instant createdAt;
 }

@@ -1,13 +1,11 @@
 package com.example.mobile_be.models;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-
-import org.springframework.data.mongodb.core.mapping.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.ArrayList;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -26,9 +24,11 @@ public class User extends BaseDocument {
     private Boolean isVerifiedArtist;
     private Boolean isVerified;
     private String resetToken;
+
     public ObjectId getObjectId() {
         return id;
     }
+
     public String getId() {
         return id != null ? id.toHexString() : null;
     }

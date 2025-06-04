@@ -30,24 +30,28 @@ public class UserDetailsImpl implements UserDetails {
     public String getPassword() {
         return user.getPassword();
     }
+
     public ObjectId getId() {
         return user.getObjectId();
     }
+
     public String getEmail() {
         return user.getEmail();
     }
+
     public String getFullName() {
         return user.getFullName();
     }
+
     public String getLastName() {
         return user.getLastName();
     }
 
-
     @Override
     public String getUsername() {
-        return user.getEmail();  
+        return user.getEmail();
     }
+
     @Override
     public boolean isAccountNonExpired() {
         return true;

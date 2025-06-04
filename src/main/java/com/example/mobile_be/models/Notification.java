@@ -1,22 +1,23 @@
 package com.example.mobile_be.models;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.springframework.data.mongodb.core.mapping.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
+@Document(collection = "notification")
 
-@Document(collection = "comment")
-public class Comment extends BaseDocument {
+public class Notification {
   @Id
   private ObjectId id;
   private String userId;
+  private String type; // newSong, replyFeedback, comment
   private String content;
-  private String parentCommentId;
-  private String songId;
+  private boolean isRead;
 
   public String getId() {
     return id != null ? id.toHexString() : null;

@@ -17,21 +17,21 @@ public class EmailService {
   // format email
   public void sendEmail(String to, String subject, String content) {
     try {
-    SimpleMailMessage message = new SimpleMailMessage();
-    message.setTo(to);
-    message.setSubject(subject);
-    message.setText(content);
-    message.setFrom(adminEmail);
-    mailSender.send(message);
-    System.out.println("Email sent to " + to + " with subject: " + subject);
-  } catch (Exception e) {
-    System.err.println("Failed to send email: " + e.getMessage());
-    e.printStackTrace();
-  }
+      SimpleMailMessage message = new SimpleMailMessage();
+      message.setTo(to);
+      message.setSubject(subject);
+      message.setText(content);
+      message.setFrom(adminEmail);
+      mailSender.send(message);
+      System.out.println("Email sent to " + to + " with subject: " + subject);
+    } catch (Exception e) {
+      System.err.println("Failed to send email: " + e.getMessage());
+      e.printStackTrace();
+    }
   }
 
   // noi dug trong mail gui user
-  //doan nay can doi lai reset link cho dung voi frontend
+  // doan nay can doi lai reset link cho dung voi frontend
   public void sendPasswordResetOTP(String to, String otp) {
     String subject = "Mã OTP đặt lại mật khẩu tài khoản";
     String content = "Bạn đã yêu cầu đặt lại mật khẩu.\n"
@@ -43,5 +43,4 @@ public class EmailService {
     System.out.println("OTP: " + otp);
   }
 
-  
 }

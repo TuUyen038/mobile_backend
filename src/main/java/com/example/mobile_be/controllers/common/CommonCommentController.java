@@ -10,43 +10,41 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
 @RequestMapping("/api/common/comment")
 
-//Comment se duoc tao moi, xoa chu khong co sua
+// Comment se duoc tao moi, xoa chu khong co sua
 
 public class CommonCommentController {
- @Autowired
-  private CommentRepository feedbackRepository;
+    @Autowired
+    private CommentRepository commentRepository;
 
-
-  //[POST] http://localhost:8081/api/common/comment/create
-  //Tạo comment 
-  @PostMapping("/create")
-  public Comment postUser(@RequestBody Comment feedback) {
-      return feedbackRepository.save(feedback);
-  }
-
-   // [GET] http://localhost:8081/api/common/comment
-    // Lấy tất cả comment của song đó
-    @GetMapping
-    public List<Comment> getAllFeedbacks() {
-        return feedbackRepository.findAll();
+    // [POST] http://localhost:8081/api/common/comment/create
+    // Tạo comment
+    @PostMapping("/create")
+    public Comment postUser(@RequestBody Comment comment) {
+        return commentRepository.save(comment);
     }
 
-    //[DELETE]  http://localhost:8081/api/common/comment/delete/{id}
-    //Xóa comment
+    // [GET] http://localhost:8081/api/common/comment
+    // Lấy tất cả comment của song đó
+    @GetMapping
+    public List<Comment> getAllComment() {
+        return commentRepository.findAll();
+    }
+
+    // [DELETE] http://localhost:8081/api/common/comment/delete/{id}
+    // Xóa comment
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
-        ObjectId objectId = new ObjectId(id); 
+        ObjectId objectId = new ObjectId(id);
 
-        if (feedbackRepository.existsById(objectId)) {
-            feedbackRepository.deleteById(objectId);
+        if (commentRepository.existsById(objectId)) {
+            commentRepository.deleteById(objectId);
             return ResponseEntity.ok().build();
         } else {
             return ResponseEntity.notFound().build();
         }
     }
 
- }
+}

@@ -6,10 +6,11 @@ import lombok.Data;
 
 @Data
 public class Otp {
- private String otp;
- private LocalDateTime expiresAt;
- public Otp(String otp, LocalDateTime ex) {
-  this.otp = otp;
-  expiresAt = ex;
- }
+    private String otp;
+    private LocalDateTime expiresAt;
+
+    public Otp(String otp, LocalDateTime ex) {
+        this.otp = otp;
+        expiresAt = ex;
+    }
 }

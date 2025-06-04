@@ -1,15 +1,6 @@
 package com.example.mobile_be.service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.Optional;
-import java.util.UUID;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -19,10 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.mobile_be.dto.RegisterRequest;
 import com.example.mobile_be.dto.ResetPasswordRequest;
-import com.example.mobile_be.models.Otp;
-import com.example.mobile_be.models.PasswordResetToken;
 import com.example.mobile_be.models.User;
-import com.example.mobile_be.repository.PasswordResetTokenRepository;
 import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.security.UserDetailsImpl;
 
@@ -80,7 +68,7 @@ public class UserService implements UserDetailsService {
 
     User user = userRepository.findByEmail(email)
         .orElseThrow(() -> new UsernameNotFoundException("User not found in login"));
-    if(user.getIsVerified() == false) {
+    if (user.getIsVerified() == false) {
       throw new BadCredentialsException("Unverified");
     }
     if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
@@ -123,29 +111,30 @@ public class UserService implements UserDetailsService {
     return true;
 
   }
-  public boolean verifyEmail(String email, String otp) {
-    User user  = userRepository.findByEmail(email).orElse(null);
 
-    if(user == null) {
+  public boolean verifyEmail(String email, String otp) {
+    User user = userRepository.findByEmail(email).orElse(null);
+
+    if (user == null) {
       return false;
     }
     user.setIsVerified(true);
     userRepository.save(user);
     return true;
   }
+
   public boolean resendOtp(String email) {
     User user = userRepository.findByEmail(email).orElse(null);
 
-    if (user == null || user.getIsVerified()) return false;
+    if (user == null || user.getIsVerified())
+      return false;
 
-    
     String newOtp = otpService.generateOtp(email);
-String subject = "Mã OTP xác thực tài khoản";
+    String subject = "Mã OTP xác thực tài khoản";
     String content = "\nMã OTP mới của bạn là: " + newOtp + "\nMã OTP có hiệu lực trong 5 phút.";
-    
+
     emailService.sendEmail(email, subject, content);
     return true;
-}
-
+  }
 
 }

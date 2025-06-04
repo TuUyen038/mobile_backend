@@ -1,7 +1,5 @@
 package com.example.mobile_be.controllers.common;
 
-
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -24,42 +22,43 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RestController
 @RequestMapping("/api/common/song")
 public class CommonSongController {
- private final SongService songService;
- public CommonSongController(SongService s) {
-  songService = s;
- }
+    private final SongService songService;
 
- // stream file .mp3
- @GetMapping("/stream/{id}")
- public void streamSong(@PathVariable ObjectId id, HttpServletResponse res) throws IOException {
-  Optional<Song> test = songService.getSongById(id);
+    public CommonSongController(SongService s) {
+        songService = s;
+    }
 
-  if (test.isEmpty()) {
-   res.setStatus(HttpServletResponse.SC_NOT_FOUND);
-   res.getWriter().write("Song not found!!");
-   return;
-  }
-  Song song = test.get();
-  File songFile = new File(song.getAudioUrl());
+    // stream file .mp3
+    @GetMapping("/stream/{id}")
+    public void streamSong(@PathVariable ObjectId id, HttpServletResponse res) throws IOException {
+        Optional<Song> test = songService.getSongById(id);
 
-  if (!songFile.exists()) {
-   res.setStatus(HttpServletResponse.SC_NOT_FOUND);
-   res.getWriter().write("File not found!!");
-   return;
-  }
+        if (test.isEmpty()) {
+            res.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            res.getWriter().write("Song not found!!");
+            return;
+        }
+        Song song = test.get();
+        File songFile = new File(song.getAudioUrl());
 
-  res.setContentType("audio/mpeg");
-  res.setHeader("Content-Disposition", "inline; filename=\"" + songFile.getName() + "\"");
+        if (!songFile.exists()) {
+            res.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            res.getWriter().write("File not found!!");
+            return;
+        }
 
-  try (InputStream iStream = new FileInputStream(songFile); OutputStream oStream = res.getOutputStream()) {
-   byte[] buffer = new byte[4096];
-   int bytesRead;
+        res.setContentType("audio/mpeg");
+        res.setHeader("Content-Disposition", "inline; filename=\"" + songFile.getName() + "\"");
 
-   while ((bytesRead = iStream.read(buffer)) != -1) {
-    oStream.write(buffer, 0, bytesRead);
-   }
-   oStream.flush();
-  }
- }
+        try (InputStream iStream = new FileInputStream(songFile); OutputStream oStream = res.getOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+
+            while ((bytesRead = iStream.read(buffer)) != -1) {
+                oStream.write(buffer, 0, bytesRead);
+            }
+            oStream.flush();
+        }
+    }
 
 }

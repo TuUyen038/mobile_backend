@@ -12,17 +12,16 @@ import org.springframework.data.annotation.Id;
 @Document(collection = "genre")
 
 public class Genre extends BaseDocument {
-    @Id
-    private ObjectId id;
-    private String name;
-    private String description;
+  @Id
+  private ObjectId id;
+  private String name;
+  private String description;
 
-    public String getId() {
-        return id != null ? id.toHexString() : null;
-      }
-    
-      public void setId(ObjectId id) {
-        this.id = id;
-      }
+  public String getId() {
+    return id != null ? id.toHexString() : null;
+  }
 
+  public void setId(ObjectId id) {
+    this.id = id;
+  }
 }

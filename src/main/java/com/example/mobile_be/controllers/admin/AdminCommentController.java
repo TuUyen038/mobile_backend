@@ -13,12 +13,12 @@ import java.util.List;
 
 public class AdminCommentController {
     @Autowired
-    private CommentRepository feedbackRepository;
+    private CommentRepository commentRepository;
 
     // [GET] http://localhost:8081/api/admin/comment
     // Lấy tất cả comment
     @GetMapping
-    public List<Comment> getAllFeedbacks() {
-        return feedbackRepository.findAll();
+    public List<Comment> getAllComments() {
+        return commentRepository.findAll();
     }
 }

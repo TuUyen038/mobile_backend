@@ -1,4 +1,4 @@
-package com.example.mobile_be.controllers;
+package com.example.mobile_be.controllers.authentication;
 
 import com.example.mobile_be.dto.ForgotPasswordRequest;
 import com.example.mobile_be.dto.ResetPasswordRequest;

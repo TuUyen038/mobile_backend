@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
-import java.sql.Date;
+import java.time.Instant;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -15,12 +15,12 @@ import java.sql.Date;
 public class ArtistRequest {
     @Id
     private ObjectId id;
-    private ObjectId user_id;
+    private String userId;
     private String portfolioUrl;
     private String status;
-    private ObjectId reviewedBy;
-    private Date submittedAt;
-    private Date reviewedAt;
+    private String reviewedBy;
+    private Instant submittedAt;
+    private Instant reviewedAt;
 
     public String getId() {
         return id != null ? id.toHexString() : null;
@@ -28,5 +28,13 @@ public class ArtistRequest {
 
     public void setId(ObjectId id) {
         this.id = id;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }

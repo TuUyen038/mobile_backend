@@ -8,8 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import com.example.mobile_be.models.Song;
 
-
 @Repository
-public interface SongRepository extends MongoRepository<Song, ObjectId>  {
- Optional<Song> findById(String id);
+public interface SongRepository extends MongoRepository<Song, ObjectId> {
+    Optional<Song> findById(ObjectId id);
 }

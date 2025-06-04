@@ -30,11 +30,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/login", "/api/register", "/api/verify-email","/api/resend-otp", "/api/password/**", "/api/artist/song/**", "/error").permitAll()
-                     //   .requestMatchers("/api/**").permitAll()
-                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                         .requestMatchers("/api/artist/**").hasAnyRole("ARTIST", "ADMIN")
-                         .requestMatchers("/api/common/**").hasAnyRole("USER", "ADMIN", "ARTIST")
+                        // .requestMatchers("/api/login", "/api/register",
+                        // "/api/verify-email","/api/resend-otp", "/api/password/**",
+                        // "/api/artist/song/**", "/error").permitAll()
+                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/artist/**").hasAnyRole("ARTIST", "ADMIN")
+                        .requestMatchers("/api/common/**").hasAnyRole("USER", "ADMIN", "ARTIST")
                         .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
@@ -45,10 +47,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("*")); 
+        config.setAllowedOrigins(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(false); 
+        config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

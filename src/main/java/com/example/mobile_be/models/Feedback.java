@@ -14,10 +14,10 @@ import org.springframework.data.annotation.Id;
 public class Feedback extends BaseDocument {
     @Id
     private ObjectId id;
-    private ObjectId user_id;
+    private String userId;
     private String content;
     private String status;
-    private String admin_reply;
+    private String adminReply;
 
     public String getId() {
         return id != null ? id.toHexString() : null;
@@ -25,5 +25,9 @@ public class Feedback extends BaseDocument {
 
     public void setId(ObjectId id) {
         this.id = id;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }

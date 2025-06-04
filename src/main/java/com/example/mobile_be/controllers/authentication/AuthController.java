@@ -1,4 +1,4 @@
-package com.example.mobile_be.controllers;
+package com.example.mobile_be.controllers.authentication;
 
 import com.example.mobile_be.dto.AuthResponse;
 import com.example.mobile_be.dto.LoginRequest;
@@ -44,42 +44,41 @@ public class AuthController {
     }
 
     // [POST] http://localhost:8081/api/common/users/register
-    // Đăng ký 
-  @PostMapping("/register")
-public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-    if (userRepository.existsByEmail(request.getEmail())) {
-        return ResponseEntity.badRequest().body("Email already used.");
-    }
-    if (request.getRole() == null || request.getRole().isEmpty()) {
-        request.setRole("ROLE_USER");
-    }
+    // Đăng ký
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            return ResponseEntity.badRequest().body("Email already used.");
+        }
+        if (request.getRole() == null || request.getRole().isEmpty()) {
+            request.setRole("ROLE_USER");
+        }
 
-    User saved = userService.register(request);
+        User saved = userService.register(request);
 
-    return ResponseEntity.ok("User registered successfully. Please verify your email.");
-}
-
-//xac thuc xong moi tra token o day
-@PostMapping("/verify-email")
-public ResponseEntity<?> verifyEmail(@RequestBody VerifyRequest request) {
-    if (!otpService.isValidOtp(request.getEmail(), request.getOtp())) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired OTP.");
+        return ResponseEntity.ok("User registered successfully. Please verify your email.");
     }
 
-    boolean verified = userService.verifyEmail(request.getEmail(), request.getOtp());
-    if (verified) {
+    // xac thuc xong moi tra token o day
+    @PostMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestBody VerifyRequest request) {
+        if (!otpService.isValidOtp(request.getEmail(), request.getOtp())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired OTP.");
+        }
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        boolean verified = userService.verifyEmail(request.getEmail(), request.getOtp());
+        if (verified) {
 
-        String token = jwtUtil.generateToken(new UserDetailsImpl(user));
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        return ResponseEntity.ok(new AuthResponse(token)); 
-    } else {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
+            String token = jwtUtil.generateToken(new UserDetailsImpl(user));
+
+            return ResponseEntity.ok(new AuthResponse(token));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
+        }
     }
-}
-
 
     @PostMapping("/resend-otp")
     public ResponseEntity<String> resendOtp(@RequestBody Map<String, String> body) {

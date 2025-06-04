@@ -1,6 +1,5 @@
 package com.example.mobile_be.repository;
 
-
 import com.example.mobile_be.models.User;
 
 import java.util.List;
@@ -11,11 +10,17 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface UserRepository extends MongoRepository<User, ObjectId> {
     List<User> findByFullNameContainingIgnoreCase(String keyword);
+
     Optional<User> findByEmail(String email);
+
     boolean existsByEmail(String email);
-    Optional<User> findById(String id);
+
+    Optional<User> findById(ObjectId id);
+
     Optional<User> findByResetToken(String token);
-    List<User> findByIsVerifiedArtistFalse(); 
+
+    List<User> findByIsVerifiedArtistFalse();
+
     List<User> findByIsVerifiedArtistTrue();
 
 }
