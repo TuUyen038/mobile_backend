@@ -30,6 +30,9 @@ public class UserDetailsImpl implements UserDetails {
     public String getPassword() {
         return user.getPassword();
     }
+    public String getRole() {
+        return user.getRole(); 
+    }
     public ObjectId getId() {
         return user.getObjectId();
     }

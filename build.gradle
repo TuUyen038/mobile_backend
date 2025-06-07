@@ -27,7 +27,7 @@ dependencies {
     // MongoDB
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
 
-    // Spring Security (includes web and config already)
+    // Spring Security 
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
     // JWT (JSON Web Token support)
@@ -38,7 +38,7 @@ dependencies {
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
-    // Lombok (for reducing boilerplate code)
+    // Lombok 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
@@ -54,6 +54,8 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
+    //Read MP3 duration
+    implementation 'com.mpatric:mp3agic:0.9.1'
     
 }
 
