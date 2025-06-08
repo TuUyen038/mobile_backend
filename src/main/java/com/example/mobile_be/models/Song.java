@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -20,7 +21,7 @@ public class Song extends BaseDocument {
     private String title;
     private String audioUrl;
     private String coverImageUrl;
-    private ArrayList<String> genreId;
+    private List<String> genreId=  new ArrayList<>();
     private Boolean isApproved;
     private Boolean isPublic;
     private String lyric;

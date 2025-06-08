@@ -27,7 +27,7 @@ dependencies {
     // MongoDB
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
 
-    // Spring Security (includes web and config already)
+    // Spring Security 
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
     // JWT (JSON Web Token support)

@@ -1,15 +1,16 @@
 package com.example.mobile_be.security;
 
-import com.example.mobile_be.models.User;
+import java.util.Collection;
+import java.util.Collections;
 
 import org.bson.types.ObjectId;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import lombok.Data;
 
-import java.util.Collection;
-import java.util.Collections;
+import com.example.mobile_be.models.User;
+
+import lombok.Data;
 
 @Data
 public class UserDetailsImpl implements UserDetails {
@@ -30,7 +31,9 @@ public class UserDetailsImpl implements UserDetails {
     public String getPassword() {
         return user.getPassword();
     }
-
+    public String getRole() {
+        return user.getRole(); 
+    }
     public ObjectId getId() {
         return user.getObjectId();
     }
