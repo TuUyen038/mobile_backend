@@ -8,16 +8,17 @@ import java.io.OutputStream;
 import java.util.Optional;
 
 import org.bson.types.ObjectId;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.example.mobile_be.service.SongService;
-import com.example.mobile_be.models.Song;
-
-import jakarta.servlet.http.HttpServletResponse;
-
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.mobile_be.models.Song;
+import com.example.mobile_be.service.SongService;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/api/common/song")
@@ -26,6 +27,15 @@ public class CommonSongController {
 
     public CommonSongController(SongService s) {
         songService = s;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getSongById(@PathVariable ObjectId id) {
+        Optional<Song> songOpt = songService.getSongById(id);
+        if (songOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Song not found!");
+        }
+        return ResponseEntity.ok(songOpt.get());
     }
 
     // stream file .mp3
