@@ -19,7 +19,7 @@ import com.example.mobile_be.repository.SongRepository;
 //Luu file .mp3 vao /uploads
 @Service
 public class SongService {
- private static final String UPLOAD_DIR = "uploads/";
+ private static final String UPLOAD_DIR = "uploads/songs";
  private final SongRepository songRepository;
 
  public SongService(SongRepository s) {
