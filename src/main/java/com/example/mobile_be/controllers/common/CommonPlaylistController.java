@@ -6,6 +6,7 @@ import com.example.mobile_be.models.User;
 import com.example.mobile_be.repository.PlaylistRepository;
 import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.security.UserDetailsImpl;
+import com.example.mobile_be.service.ImageStorageService;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -20,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/common/playlist")
@@ -29,7 +31,8 @@ public class CommonPlaylistController {
   private PlaylistRepository playlistRepository;
   @Autowired
   UserRepository userRepository;
-
+  @Autowired
+  private ImageStorageService imageStorageService;
   private User getCurrentUser() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -49,25 +52,30 @@ public class CommonPlaylistController {
   // [GET] http://localhost:8081/api/common/playlist/{playlistId}
   // lấy playlist theo ID
   @GetMapping("/{id}")
-  public ResponseEntity<?> getPlaylistById(@PathVariable("id") String id) {
+public ResponseEntity<?> getPlaylistById(@PathVariable("id") String id) {
+    ObjectId objId;
     try {
-      ObjectId objId = new ObjectId(id);
-      Optional<Playlist> playlistOpt = playlistRepository.findById(objId);
-
-      if (playlistOpt.isEmpty())
-        return ResponseEntity.notFound().build();
-
-      Playlist playlist = playlistOpt.get();
-      if (!playlist.getUserId().equals(getCurrentUser().getId())) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
-      }
-
-      return ResponseEntity.ok(playlist);
-    } catch (Exception e) {
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body("Error: " + e.getMessage());
+        objId = new ObjectId(id);
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("ID không hợp lệ");
     }
-  }
+
+    Optional<Playlist> playlistOpt = playlistRepository.findById(objId);
+    if (playlistOpt.isEmpty()) {
+        
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy playlist");
+    }
+
+    Playlist playlist = playlistOpt.get();
+    if (!playlist.getUserId().equals(getCurrentUser().getId())) {
+        
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Người dùng không có quyền truy cập");
+    }
+
+    return ResponseEntity.ok(playlist);
+}
+
 
   // [GET] http://localhost:8081/api/commonplaylist/search?keyword=...
   // tìm kiếm playlist theo tên
@@ -82,18 +90,36 @@ public class CommonPlaylistController {
   // [POST] http://localhost:8081/api/common/playlist/create
   // tạo playlist
   @PostMapping("/create")
-  public ResponseEntity<?> postPlaylist(@RequestBody PlaylistRequest request) {
+  public ResponseEntity<?> postPlaylist(@ModelAttribute PlaylistRequest request) {
     // Lấy user đang đăng nhập từ SecurityContext
-    User user = getCurrentUser();
+    try {
 
-    Playlist playlist = new Playlist();
-    playlist.setName(request.getName());
-    playlist.setDescription(request.getDescription());
-    playlist.setUserId(user.getId());
-    playlist.setThumbnailUrl(request.getThumbnailUrl());
-    playlist.setIsPublic(false);
-    playlistRepository.save(playlist);
-    return ResponseEntity.status(200).body("Playlist created successfully.");
+      
+      User user = getCurrentUser();
+
+      Playlist playlist = new Playlist();
+      playlist.setName(request.getName());
+      playlist.setDescription(request.getDescription());
+      playlist.setUserId(user.getId());
+      playlist.setIsPublic(false);
+
+      MultipartFile thumbnail = request.getThumbnail();
+
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            String url = imageStorageService.saveFile(thumbnail, "playlists");
+            playlist.setThumbnailUrl(url);
+
+        }
+        else {
+            System.out.println("Thumbnail URL: " );
+
+        }
+
+      playlistRepository.save(playlist);
+      return ResponseEntity.status(200).body("Playlist created successfully.");
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Loi o tao playlist: " + e.getMessage());
+    }
   }
 
   // [PATCH] http://localhost:8081/api/common/playlist/change/{playlistId}
