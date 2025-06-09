@@ -30,10 +30,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        // .requestMatchers("/api/login", "/api/register",
-                        // "/api/verify-email","/api/resend-otp", "/api/password/**",
-                        // "/api/artist/song/**", "/error").permitAll()
-                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/api/login", "/api/register",
+                        "/api/verify-email","/api/resend-otp", "/api/password/**",
+                        "/api/artist/song/**", "/error", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/artist/**").hasAnyRole("ARTIST", "ADMIN")
                         .requestMatchers("/api/common/**").hasAnyRole("USER", "ADMIN", "ARTIST")

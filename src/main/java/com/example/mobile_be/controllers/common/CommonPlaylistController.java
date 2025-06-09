@@ -1,13 +1,5 @@
 package com.example.mobile_be.controllers.common;
 
-import com.example.mobile_be.dto.PlaylistRequest;
-import com.example.mobile_be.models.Playlist;
-import com.example.mobile_be.models.User;
-import com.example.mobile_be.repository.PlaylistRepository;
-import com.example.mobile_be.repository.UserRepository;
-import com.example.mobile_be.security.UserDetailsImpl;
-import com.example.mobile_be.service.ImageStorageService;
-
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -15,13 +7,32 @@ import java.util.Optional;
 
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.ReflectionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.util.ReflectionUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.example.mobile_be.dto.PlaylistRequest;
+import com.example.mobile_be.models.Playlist;
+import com.example.mobile_be.models.Song;
+import com.example.mobile_be.models.User;
+import com.example.mobile_be.repository.PlaylistRepository;
+import com.example.mobile_be.repository.UserRepository;
+import com.example.mobile_be.repository.SongRepository;
+import com.example.mobile_be.security.UserDetailsImpl;
+import com.example.mobile_be.service.ImageStorageService;
 
 @RestController
 @RequestMapping("/api/common/playlist")
@@ -33,6 +44,9 @@ public class CommonPlaylistController {
   UserRepository userRepository;
   @Autowired
   private ImageStorageService imageStorageService;
+  @Autowired
+  private SongRepository songRepository;
+
   private User getCurrentUser() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -52,30 +66,57 @@ public class CommonPlaylistController {
   // [GET] http://localhost:8081/api/common/playlist/{playlistId}
   // lấy playlist theo ID
   @GetMapping("/{id}")
-public ResponseEntity<?> getPlaylistById(@PathVariable("id") String id) {
+  public ResponseEntity<?> getPlaylistById(@PathVariable("id") String id) {
     ObjectId objId;
     try {
-        objId = new ObjectId(id);
+      objId = new ObjectId(id);
     } catch (IllegalArgumentException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body("ID không hợp lệ");
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+          .body("ID không hợp lệ");
     }
 
     Optional<Playlist> playlistOpt = playlistRepository.findById(objId);
     if (playlistOpt.isEmpty()) {
-        
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy playlist");
+
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy playlist");
     }
 
     Playlist playlist = playlistOpt.get();
     if (!playlist.getUserId().equals(getCurrentUser().getId())) {
-        
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Người dùng không có quyền truy cập");
+
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Người dùng không có quyền truy cập");
     }
 
     return ResponseEntity.ok(playlist);
-}
+  }
 
+  @GetMapping("/{playlistId}/songs")
+  public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
+    ObjectId playlistObjId;
+    try {
+      playlistObjId = new ObjectId(playlistId);
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().body("Invalid playlist ID");
+    }
+
+    Playlist playlist = playlistRepository.findById(playlistObjId)
+        .orElseThrow(() -> new RuntimeException("Playlist not found"));
+
+    // Check quyền
+    if (!playlist.getUserId().equals(getCurrentUser().getId())) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+    }
+
+    // Convert List<String> to List<ObjectId>
+    List<ObjectId> songObjectIds = playlist.getSongs()
+        .stream()
+        .map(ObjectId::new)
+        .toList();
+
+    List<Song> songs = songRepository.findByIdIn(songObjectIds);
+
+    return ResponseEntity.ok(songs);
+  }
 
   // [GET] http://localhost:8081/api/commonplaylist/search?keyword=...
   // tìm kiếm playlist theo tên
@@ -94,7 +135,6 @@ public ResponseEntity<?> getPlaylistById(@PathVariable("id") String id) {
     // Lấy user đang đăng nhập từ SecurityContext
     try {
 
-      
       User user = getCurrentUser();
 
       Playlist playlist = new Playlist();
@@ -105,15 +145,14 @@ public ResponseEntity<?> getPlaylistById(@PathVariable("id") String id) {
 
       MultipartFile thumbnail = request.getThumbnail();
 
-        if (thumbnail != null && !thumbnail.isEmpty()) {
-            String url = imageStorageService.saveFile(thumbnail, "playlists");
-            playlist.setThumbnailUrl(url);
+      if (thumbnail != null && !thumbnail.isEmpty()) {
+        String url = imageStorageService.saveFile(thumbnail, "playlists");
+        playlist.setThumbnailUrl(url);
 
-        }
-        else {
-            System.out.println("Thumbnail URL: " );
+      } else {
+        System.out.println("Thumbnail URL: ");
 
-        }
+      }
 
       playlistRepository.save(playlist);
       return ResponseEntity.status(200).body("Playlist created successfully.");

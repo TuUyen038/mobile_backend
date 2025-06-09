@@ -5,7 +5,6 @@ import java.util.Date;
 
 import javax.crypto.SecretKey;
 
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +25,7 @@ public class JwtUtil {
         .setSubject(userDetails.getUsername())
         .claim("roles", userDetails.getAuthorities()
             .stream()
-            .map(GrantedAuthority::getAuthority)
+            .map(auth -> auth.getAuthority().replace("ROLE_", ""))
             .toList())
         .setIssuedAt(new Date(System.currentTimeMillis()))
         .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))

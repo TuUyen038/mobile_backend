@@ -1,5 +1,6 @@
 package com.example.mobile_be.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.bson.types.ObjectId;
@@ -11,4 +12,6 @@ import com.example.mobile_be.models.Song;
 @Repository
 public interface SongRepository extends MongoRepository<Song, ObjectId> {
     Optional<Song> findById(ObjectId id);
+    
+    List<Song> findByIdIn(List<ObjectId> id);
 }
