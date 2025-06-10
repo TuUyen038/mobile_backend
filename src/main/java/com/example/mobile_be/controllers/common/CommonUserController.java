@@ -42,6 +42,12 @@ public class CommonUserController {
         return ResponseEntity.ok(users);
     }
 
+    @GetMapping("/search-artist")
+    public ResponseEntity<?> searchArtistByName(@RequestParam String name) {
+        List<User> artists = userService.searchVerifiedArtists(name);
+        return ResponseEntity.ok(artists);
+    }
+
     // [GET] http://localhost:8081/api/common/users/me
     @GetMapping("/me")
     public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {

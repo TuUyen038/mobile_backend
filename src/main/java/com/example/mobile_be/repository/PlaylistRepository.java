@@ -8,7 +8,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface PlaylistRepository extends MongoRepository<Playlist, ObjectId> {
-  List<Playlist> findByNameContainingIgnoreCase(String keyword, String user_id);
+  List<Playlist> findByNameContainingIgnoreCase(String name);
 
   List<Playlist> findByUserId(String user_id);
 

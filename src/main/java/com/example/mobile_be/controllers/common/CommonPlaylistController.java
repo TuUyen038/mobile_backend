@@ -33,6 +33,7 @@ import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.repository.SongRepository;
 import com.example.mobile_be.security.UserDetailsImpl;
 import com.example.mobile_be.service.ImageStorageService;
+import com.example.mobile_be.service.PlaylistService;
 
 @RestController
 @RequestMapping("/api/common/playlist")
@@ -44,6 +45,8 @@ public class CommonPlaylistController {
   UserRepository userRepository;
   @Autowired
   private ImageStorageService imageStorageService;
+   @Autowired
+  private PlaylistService playlistService;
   @Autowired
   private SongRepository songRepository;
 
@@ -121,10 +124,8 @@ public class CommonPlaylistController {
   // [GET] http://localhost:8081/api/common/playlist/search?keyword=...
   // tìm kiếm playlist theo tên
   @GetMapping("/search")
-  public ResponseEntity<List<Playlist>> searchPlaylistByName(@RequestParam String keyword) {
-    User user = getCurrentUser();
-
-    List<Playlist> playlists = playlistRepository.findByNameContainingIgnoreCase(keyword, user.getId());
+  public ResponseEntity<List<Playlist>> searchPlaylistByName(@RequestParam String name) {
+    List<Playlist> playlists = playlistRepository.findByNameContainingIgnoreCase(name);
     return ResponseEntity.ok(playlists);
   }
 
@@ -259,6 +260,12 @@ public class CommonPlaylistController {
 
     playlistRepository.deleteById(objectId);
     return ResponseEntity.ok().build();
+  }
+
+  @GetMapping("/search")
+  public ResponseEntity<?> searchPlaylistsByName(@RequestParam String name) {
+    List<Playlist> results = playlistService.searchByName(name);
+    return ResponseEntity.ok(results);
   }
 
 }

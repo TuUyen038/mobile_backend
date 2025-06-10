@@ -12,6 +12,8 @@ import com.example.mobile_be.models.Song;
 @Repository
 public interface SongRepository extends MongoRepository<Song, ObjectId> {
     Optional<Song> findById(ObjectId id);
+
+    List<Song> findByTitleContainingIgnoreCase(String title);
     
     List<Song> findByIdIn(List<ObjectId> id);
 

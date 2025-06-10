@@ -33,13 +33,17 @@ public class SongService {
         return UPLOAD_DIR;
     }
 
-    public List<Song> getNewReleaseSongs(){
+    public List<Song> getNewReleaseSongs() {
         return songRepository.findTop10ByOrderByCreatedAtDesc();
     };
 
     // public List<Song> getRecentlyPlayedSongs(){
-    //     return songRepository.findTop10ByOrderByLastPlayedAtDesc();
+    // return songRepository.findTop10ByOrderByLastPlayedAtDesc();
     // };
+
+    public List<Song> searchSongsByTitle(String title) {
+        return songRepository.findByTitleContainingIgnoreCase(title);
+    }
 
     public Song saveSongFile(Song song, MultipartFile file) throws IOException {
 

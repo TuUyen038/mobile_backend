@@ -1,5 +1,7 @@
 package com.example.mobile_be.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -58,10 +60,12 @@ public class UserService implements UserDetailsService {
     // Xác minh OTP và tạo tài khoản thực
     public boolean verifyEmail(String email, String otp) {
         boolean isValid = otpService.isValidOtp(email, otp);
-        if (!isValid) return false;
+        if (!isValid)
+            return false;
 
         OtpService.PendingUser pending = otpService.getPendingUsers().remove(email);
-        if (pending == null) return false;
+        if (pending == null)
+            return false;
 
         RegisterRequest request = pending.getRequest();
 
@@ -94,7 +98,8 @@ public class UserService implements UserDetailsService {
     // Gửi mail reset password
     public boolean requestPasswordReset(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return false;
+        if (user == null)
+            return false;
 
         String otp = otpService.generateOtp(email);
         emailService.sendPasswordResetOTP(email, otp);
@@ -104,10 +109,12 @@ public class UserService implements UserDetailsService {
     // Đặt lại mật khẩu bằng OTP
     public boolean resetPasswordWithOtp(ResetPasswordRequest request) {
         boolean isValid = otpService.isValidOtp(request.getEmail(), request.getOtp());
-        if (!isValid) return false;
+        if (!isValid)
+            return false;
 
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
-        if (user == null) return false;
+        if (user == null)
+            return false;
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
@@ -117,7 +124,8 @@ public class UserService implements UserDetailsService {
     // Gửi lại OTP đăng ký (chưa xác thực)
     public boolean resendOtp(String email) {
         OtpService.PendingUser pending = otpService.getPendingUsers().get(email);
-        if (pending == null) return false;
+        if (pending == null)
+            return false;
 
         String newOtp = otpService.generateAndStorePendingUser(pending.getRequest());
 
@@ -127,5 +135,9 @@ public class UserService implements UserDetailsService {
 
         emailService.sendEmail(email, subject, content);
         return true;
+    }
+
+    public List<User> searchVerifiedArtists(String name) {
+        return userRepository.findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(name);
     }
 }

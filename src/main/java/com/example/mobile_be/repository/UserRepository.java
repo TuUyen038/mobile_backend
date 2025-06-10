@@ -23,4 +23,6 @@ public interface UserRepository extends MongoRepository<User, ObjectId> {
 
     List<User> findByIsVerifiedArtistTrue();
 
+    List<User> findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(String name);
+
 }
