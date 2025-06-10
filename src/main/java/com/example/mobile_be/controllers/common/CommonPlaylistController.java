@@ -45,8 +45,6 @@ public class CommonPlaylistController {
   UserRepository userRepository;
   @Autowired
   private ImageStorageService imageStorageService;
-   @Autowired
-  private PlaylistService playlistService;
   @Autowired
   private SongRepository songRepository;
 
@@ -261,11 +259,4 @@ public class CommonPlaylistController {
     playlistRepository.deleteById(objectId);
     return ResponseEntity.ok().build();
   }
-
-  @GetMapping("/search")
-  public ResponseEntity<?> searchPlaylistsByName(@RequestParam String name) {
-    List<Playlist> results = playlistService.searchByName(name);
-    return ResponseEntity.ok(results);
-  }
-
 }
