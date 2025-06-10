@@ -1,5 +1,8 @@
 package com.example.mobile_be.models;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -24,6 +27,7 @@ public class User extends BaseDocument {
     private Boolean isVerifiedArtist;
     private Boolean isVerified;
     private String resetToken;
+    private List<String> recentlyPlayed = new ArrayList<>();
 
     public ObjectId getObjectId() {
         return id;

@@ -5,6 +5,8 @@ import lombok.EqualsAndHashCode;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +29,7 @@ public class Song extends BaseDocument {
     private String lyric;
     private Double duration;
     private Double views;
+    private Date lastPlayedAt;
 
     public String getId() {
         return id != null ? id.toHexString() : null;
