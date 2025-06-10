@@ -118,7 +118,7 @@ public class CommonPlaylistController {
     return ResponseEntity.ok(songs);
   }
 
-  // [GET] http://localhost:8081/api/commonplaylist/search?keyword=...
+  // [GET] http://localhost:8081/api/common/playlist/search?keyword=...
   // tìm kiếm playlist theo tên
   @GetMapping("/search")
   public ResponseEntity<List<Playlist>> searchPlaylistByName(@RequestParam String keyword) {

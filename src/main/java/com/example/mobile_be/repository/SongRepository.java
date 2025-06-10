@@ -14,4 +14,8 @@ public interface SongRepository extends MongoRepository<Song, ObjectId> {
     Optional<Song> findById(ObjectId id);
     
     List<Song> findByIdIn(List<ObjectId> id);
+
+    // public List<Song> findTop10ByOrderByLastPlayedAtDesc();
+
+    List<Song> findTop10ByOrderByCreatedAtDesc();
 }

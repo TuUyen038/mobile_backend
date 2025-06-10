@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 
 import org.bson.types.ObjectId;
@@ -17,8 +18,8 @@ import com.example.mobile_be.repository.SongRepository;
 //Luu file .mp3 vao /uploads
 @Service
 public class SongService {
- private static final String UPLOAD_DIR = "uploads/";
- private final SongRepository songRepository;
+    private static final String UPLOAD_DIR = "uploads/";
+    private final SongRepository songRepository;
 
     public SongService(SongRepository s) {
         songRepository = s;
@@ -32,7 +33,16 @@ public class SongService {
         return UPLOAD_DIR;
     }
 
+    public List<Song> getNewReleaseSongs(){
+        return songRepository.findTop10ByOrderByCreatedAtDesc();
+    };
+
+    // public List<Song> getRecentlyPlayedSongs(){
+    //     return songRepository.findTop10ByOrderByLastPlayedAtDesc();
+    // };
+
     public Song saveSongFile(Song song, MultipartFile file) throws IOException {
+
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Empty file.");
         }

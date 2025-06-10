@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Optional;
 
 import org.bson.types.ObjectId;
@@ -71,4 +72,15 @@ public class CommonSongController {
         }
     }
 
+    @GetMapping("/new-release")
+    public ResponseEntity<?> getNewReleaseSongs() {
+        List<Song> newSongs = songService.getNewReleaseSongs();
+        return ResponseEntity.ok(newSongs);
+    }
+
+    // @GetMapping("/recently")
+    // public ResponseEntity<?> getRecentlyPlayedSongs() {
+    //     List<Song> recentSongs = songService.getRecentlyPlayedSongs();
+    //     return ResponseEntity.ok(recentSongs);
+    // }
 }
