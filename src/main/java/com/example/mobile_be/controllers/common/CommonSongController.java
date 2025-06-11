@@ -18,19 +18,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mobile_be.models.Song;
+import com.example.mobile_be.repository.SongRepository;
 import com.example.mobile_be.service.SongService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/common/song")
 public class CommonSongController {
     private final SongService songService;
-
-    public CommonSongController(SongService s) {
-        songService = s;
-    }
+    private final SongRepository songRepository;
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getSongById(@PathVariable ObjectId id) {
@@ -58,6 +58,9 @@ public class CommonSongController {
             res.getWriter().write("File not found!!");
             return;
         }
+
+        //views++
+        songService.incrementViews(id);
 
         long fileLength = songFile.length();
         String range = req.getHeader("Range");
@@ -125,6 +128,26 @@ public class CommonSongController {
     @GetMapping("/search")
     public ResponseEntity<?> searchSongsByTitle(@RequestParam String title) {
         List<Song> results = songService.searchSongsByTitle(title);
+        return ResponseEntity.ok(results);
+    }
+
+    // filter
+    @GetMapping("/filter")
+    public ResponseEntity<?> filterSongsByCreatedAt(@RequestParam String filter) {
+        List<Song> results;
+        switch (filter) {
+            case "newest":
+                results = songRepository.findAllByOrderByCreatedAtDesc();
+                break;
+            case "trending":
+                results = songRepository.findByOrderByViewsDesc();
+                break;
+            case "all":
+                results = songRepository.findAll();
+                break;
+            default:
+                return ResponseEntity.badRequest().body("Invalid filter: use 'newest', 'trending' or 'all'");
+        }
         return ResponseEntity.ok(results);
     }
 }

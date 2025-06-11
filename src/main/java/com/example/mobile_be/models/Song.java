@@ -2,6 +2,8 @@ package com.example.mobile_be.models;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import org.springframework.data.mongodb.core.index.TextIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
@@ -18,8 +20,10 @@ import java.util.List;
 public class Song extends BaseDocument {
     @Id
     private ObjectId id;
-    private String artistId;
+    private String artist_id;
     private String description;
+    
+    @TextIndexed 
     private String title;
     private String audioUrl;
     private String coverImageUrl;
@@ -28,7 +32,7 @@ public class Song extends BaseDocument {
     private Boolean isPublic;
     private String lyric;
     private Double duration;
-    private Double views;
+    private Long views = 0l;
     private Date lastPlayedAt;
 
     public String getId() {
