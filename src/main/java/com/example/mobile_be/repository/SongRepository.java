@@ -30,4 +30,7 @@ public interface SongRepository extends MongoRepository<Song, ObjectId> {
     List<Song> findAllByOrderByCreatedAtDesc();
     List<Song> findAllByOrderByCreatedAtAsc();
 
+    List<Song> findByGenreId(String genreId);
+
+
 }

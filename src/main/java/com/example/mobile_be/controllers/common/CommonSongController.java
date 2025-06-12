@@ -43,7 +43,7 @@ public class CommonSongController {
 
     // stream file .mp3
     @GetMapping("/stream/{id}")
-    public void streamSong(@PathVariable ObjectId id, HttpServletRequest req, HttpServletResponse res)
+    public void streamSong(@PathVariable("id") ObjectId id, HttpServletRequest req, HttpServletResponse res)
             throws IOException {
         Optional<Song> test = songService.getSongById(id);
         if (test.isEmpty()) {
@@ -150,4 +150,14 @@ public class CommonSongController {
         }
         return ResponseEntity.ok(results);
     }
+
+    @GetMapping("/genre/{genreId}")
+    public ResponseEntity<?> getSongsByGenre(@PathVariable("genreId") String genreId) {
+        List<Song> songs = songRepository.findByGenreId(genreId);
+        if (songs.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No songs found for this genre.");
+        }
+        return ResponseEntity.ok(songs);
+    }
+
 }
