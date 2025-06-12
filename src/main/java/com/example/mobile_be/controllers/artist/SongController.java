@@ -62,7 +62,7 @@ public class SongController {
 
   try {
    Song song = new Song();
-   song.setArtistId(user.getId());
+   song.setArtist_id(user.getId());
    if (coverImageUrl != null && coverImageUrl.trim().length() != 0) {
     song.setCoverImageUrl(coverImageUrl);
    }
@@ -139,4 +139,7 @@ public class SongController {
      .body("Edit song failed: " + e.getMessage());
   }
  }
+
+  
+
 }

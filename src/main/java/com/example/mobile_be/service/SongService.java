@@ -8,22 +8,40 @@ import java.util.List;
 import java.util.Optional;
 
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Update;
+
 
 import com.example.mobile_be.models.Song;
 import com.example.mobile_be.repository.SongRepository;
+import com.mongodb.client.result.UpdateResult;
 
 //Luu file .mp3 vao /uploads
 @Service
 public class SongService {
+    @Autowired
+private MongoTemplate mongoTemplate;
+
     private static final String UPLOAD_DIR = "uploads/";
     private final SongRepository songRepository;
 
     public SongService(SongRepository s) {
         songRepository = s;
     }
+
+    public void incrementViews(ObjectId id) {
+    Query query = new Query(Criteria.where("_id").is(id));
+    Update update = new Update().inc("views", 1);
+    UpdateResult result = mongoTemplate.updateFirst(query, update, Song.class);
+    System.out.println("Modified count: " + result.getModifiedCount()); 
+}
 
     public Optional<Song> getSongById(ObjectId id) {
         return songRepository.findById(id);

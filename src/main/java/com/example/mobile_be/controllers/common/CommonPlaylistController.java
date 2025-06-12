@@ -33,7 +33,6 @@ import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.repository.SongRepository;
 import com.example.mobile_be.security.UserDetailsImpl;
 import com.example.mobile_be.service.ImageStorageService;
-import com.example.mobile_be.service.PlaylistService;
 
 @RestController
 @RequestMapping("/api/common/playlist")
@@ -148,11 +147,7 @@ public class CommonPlaylistController {
         String url = imageStorageService.saveFile(thumbnail, "playlists");
         playlist.setThumbnailUrl(url);
 
-      } else {
-        System.out.println("Thumbnail URL: ");
-
       }
-
       playlistRepository.save(playlist);
       return ResponseEntity.status(200).body("Playlist created successfully.");
     } catch (Exception e) {
