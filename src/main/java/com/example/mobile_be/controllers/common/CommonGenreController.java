@@ -21,7 +21,6 @@ import com.example.mobile_be.service.ImageStorageService;
 public class CommonGenreController {
     @Autowired
     private GenreRepository genreRepository;
-    @Autowired
 
    
     // lay danh sach genre

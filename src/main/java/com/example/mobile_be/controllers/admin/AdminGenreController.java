@@ -2,8 +2,13 @@ package com.example.mobile_be.controllers.admin;
 
 import java.util.Optional;
 
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mobile_be.dto.GenreRequest;
 import com.example.mobile_be.models.Genre;
+import com.example.mobile_be.models.Song;
 import com.example.mobile_be.repository.GenreRepository;
 import com.example.mobile_be.service.ImageStorageService;
 
@@ -26,9 +32,11 @@ public class AdminGenreController {
     private GenreRepository genreRepository;
     @Autowired
     private ImageStorageService imageStorageService;
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     // tao genre
-    //yeu cau: content Type: multipart/form-data bởi vì có chỉnh sửa cả file ảnh
+    // yeu cau: content Type: multipart/form-data bởi vì có chỉnh sửa cả file ảnh
 
     @PostMapping()
     public ResponseEntity<?> createGenre(@ModelAttribute GenreRequest data) {
@@ -57,7 +65,7 @@ public class AdminGenreController {
     }
 
     // chinh sua genre
-    //yeu cau: content Type: multipart/form-data bởi vì có chỉnh sửa cả file ảnh
+    // yeu cau: content Type: multipart/form-data bởi vì có chỉnh sửa cả file ảnh
     @PutMapping("/{id}")
     public ResponseEntity<?> updateGenre(@PathVariable String id, @ModelAttribute GenreRequest data) {
         ObjectId objectId;
@@ -98,15 +106,20 @@ public class AdminGenreController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteGenre(@PathVariable String id) {
+    public ResponseEntity<?> deleteGenre(@PathVariable("id") String id) {
         ObjectId objectId;
         try {
             objectId = new ObjectId(id);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body("Invalid ID");
         }
 
         genreRepository.deleteById(objectId);
+        Criteria criteria = Criteria.where("genreId").is(id);
+        Query query = new Query().addCriteria(criteria);
+        Update update = new Update().pull("genreId", id);
+        mongoTemplate.updateMulti(query, update, Song.class);
+
         return ResponseEntity.ok().body("Genre deleted successfully");
     }
 }
