@@ -20,6 +20,7 @@ import java.util.List;
 @Document(collection = "song")
 
 public class Song extends BaseDocument {
+
     @Id
     private ObjectId id;
     private String artistId;

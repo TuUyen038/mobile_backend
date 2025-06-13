@@ -17,6 +17,7 @@ import lombok.EqualsAndHashCode;
 
 @Document(collection = "user")
 public class User extends BaseDocument {
+    
     @Id
     private ObjectId id;
     private String email;

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.mobile_be.dto.SearchResponse;
 import com.example.mobile_be.dto.SongResponse;
 import com.example.mobile_be.dto.UserResponse;
+import com.example.mobile_be.models.MultiResponse;
 import com.example.mobile_be.models.Playlist;
 import com.example.mobile_be.models.Song;
 import com.example.mobile_be.models.User;
@@ -208,7 +210,8 @@ public class CommonSongController {
 
         List<Song> songsByTitle = songRepository.findByTitleContainingIgnoreCase(keyword);
 
-        List<UserResponse> artists = userRepository.findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(keyword).stream()
+        List<UserResponse> artists = userRepository.findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(keyword)
+                .stream()
                 .map(art -> {
                     UserResponse res = new UserResponse();
                     res.setId(art.getId());
@@ -252,11 +255,19 @@ public class CommonSongController {
             return res;
         }).collect(Collectors.toList());
 
-        SearchResponse responses = new SearchResponse();
-        responses.setSongs(songs);
-        responses.setArtists(artists);
-        responses.setPlaylists(playlists);
-        return ResponseEntity.ok(responses);
+        //sort 
+        List<MultiResponse> mixed = new ArrayList<>();
+        int maxSize = Math.max(songs.size(), Math.max(playlists.size(), artists.size()));
+        for (int i = 0; i < maxSize; i++) {
+            if (i < songs.size())
+                mixed.add(songs.get(i));
+            if (i < artists.size())
+                mixed.add(artists.get(i));
+            if (i < playlists.size())
+                mixed.add(playlists.get(i));
+        }
+        return ResponseEntity.ok(mixed);
+
     }
 
     // filter

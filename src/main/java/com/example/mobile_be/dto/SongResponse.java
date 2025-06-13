@@ -5,12 +5,18 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 
+import com.example.mobile_be.models.MultiResponse;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class SongResponse {
+public class SongResponse implements MultiResponse{
+    @Override
+    public String getType() {
+        return "song";
+    }
     private String id;
     private String artistId;
     private String audioUrl;
