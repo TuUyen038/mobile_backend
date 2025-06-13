@@ -22,7 +22,7 @@ import java.util.List;
 public class Song extends BaseDocument {
     @Id
     private ObjectId id;
-    private String artist_id;
+    private String artistId;
     private String description;
     
     @TextIndexed 

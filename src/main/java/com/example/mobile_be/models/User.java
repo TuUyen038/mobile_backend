@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
@@ -20,6 +21,7 @@ public class User extends BaseDocument {
     private String email;
     private String password;
     private String lastName;
+    @Indexed
     private String fullName;
     private String role;
     private String avatarUrl;

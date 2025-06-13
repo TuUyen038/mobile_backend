@@ -11,6 +11,11 @@ import java.util.List;
 import java.util.Optional;
 
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -53,6 +58,16 @@ public class SongController {
       userRepository = u;
       imageStorageService = i;
    }
+ @Autowired
+    private MongoTemplate mongoTemplate;
+
+   //  public void renameArtistField() {
+   //      mongoTemplate.updateMulti(
+   //          Query.query(Criteria.where("artist_id").exists(true)),
+   //          new Update().rename("artist_id", "artistId"),
+   //          "song"  // hoặc Song.class nếu đã ánh xạ document
+   //      );
+   //  }
 
    private User getCurrentUser() {
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -70,7 +85,7 @@ public class SongController {
 
       try {
          Song song = new Song();
-         song.setArtist_id(user.getId());
+         song.setArtistId(user.getId());
          if (coverImageUrl != null && coverImageUrl.trim().length() != 0) {
             song.setCoverImageUrl(coverImageUrl);
          }
@@ -91,7 +106,7 @@ public class SongController {
 
    // stream file .mp3
    @GetMapping("/stream/{id}")
-   public void streamSong(@PathVariable ObjectId id, HttpServletResponse res) throws IOException {
+   public void streamSong(@PathVariable("id") ObjectId id, HttpServletResponse res) throws IOException {
       Optional<Song> test = songService.getSongById(id);
       if (test.isEmpty()) {
          res.setStatus(HttpServletResponse.SC_NOT_FOUND);

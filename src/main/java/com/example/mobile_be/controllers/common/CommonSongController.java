@@ -5,8 +5,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
@@ -18,7 +22,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mobile_be.models.Song;
+import com.example.mobile_be.models.User;
 import com.example.mobile_be.repository.SongRepository;
+import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.service.SongService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +37,7 @@ import lombok.RequiredArgsConstructor;
 public class CommonSongController {
     private final SongService songService;
     private final SongRepository songRepository;
+    private final UserRepository userRepository;
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getSongById(@PathVariable ObjectId id) {
@@ -126,10 +133,31 @@ public class CommonSongController {
     // }
 
     @GetMapping("/search")
-    public ResponseEntity<?> searchSongsByTitle(@RequestParam String title) {
-        List<Song> results = songService.searchSongsByTitle(title);
-        return ResponseEntity.ok(results);
+public ResponseEntity<?> searchSongsByKeyword(@RequestParam("keyword") String keyword) {
+    Set<Song> resultSet = new HashSet<>();
+
+    if (keyword != null && !keyword.trim().isEmpty()) {
+
+
+    // Tìm theo tiêu đề bài hát
+    List<Song> songsByTitle = songRepository.findByTitleContainingIgnoreCase(keyword);
+    resultSet.addAll(songsByTitle);
+
+    // Tìm nghệ sĩ theo tên
+    List<User> artists = userRepository.findByFullNameContainingIgnoreCase(keyword);
+    if (!artists.isEmpty()) {
+        List<String> artistIds = artists.stream()
+                                        .map(User::getId)
+                                        .collect(Collectors.toList());
+
+        List<Song> songsByArtist = songRepository.findByArtistIdIn(artistIds);
+        resultSet.addAll(songsByArtist);
     }
+
+    }
+    return ResponseEntity.ok(new ArrayList<>(resultSet));
+}
+
 
     // filter
     @GetMapping("/filter")
