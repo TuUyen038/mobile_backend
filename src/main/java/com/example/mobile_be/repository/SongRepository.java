@@ -18,7 +18,7 @@ public interface SongRepository extends MongoRepository<Song, ObjectId> {
     Optional<Song> findById(ObjectId id);
 
     List<Song> findByTitleContainingIgnoreCase(String title);
-    
+    List<Song> findByArtistIdIn(List<String> artistIds);
     List<Song> findByIdIn(List<ObjectId> id);
 
     // public List<Song> findTop10ByOrderByLastPlayedAtDesc();
@@ -32,5 +32,6 @@ public interface SongRepository extends MongoRepository<Song, ObjectId> {
 
     List<Song> findByGenreId(String genreId);
 
+   
 
 }

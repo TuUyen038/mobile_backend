@@ -13,7 +13,12 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 @Document(collection = "playlist")
 
-public class Playlist extends BaseDocument {
+public class Playlist extends BaseDocument implements MultiResponse{
+    
+    @Override
+    public String getType() {
+        return "playlist";
+    }
     @Id
     private ObjectId id;
     private String name;
@@ -22,6 +27,7 @@ public class Playlist extends BaseDocument {
     private String userId;
     private String thumbnailUrl;
     private Boolean isPublic;
+    
 
     public String getId() {
         return id != null ? id.toHexString() : null;

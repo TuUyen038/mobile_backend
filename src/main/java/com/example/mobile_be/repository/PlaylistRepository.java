@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 public interface PlaylistRepository extends MongoRepository<Playlist, ObjectId> {
   List<Playlist> findByNameContainingIgnoreCase(String name);
 
-  List<Playlist> findByUserId(String user_id);
+  List<Playlist> findByUserId(String userId);
+
 
 }

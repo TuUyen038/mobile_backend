@@ -5,20 +5,38 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.mobile_be.dto.SearchResponse;
+import com.example.mobile_be.dto.SongResponse;
+import com.example.mobile_be.dto.UserResponse;
+import com.example.mobile_be.models.MultiResponse;
+import com.example.mobile_be.models.Playlist;
 import com.example.mobile_be.models.Song;
+import com.example.mobile_be.models.User;
+import com.example.mobile_be.repository.PlaylistRepository;
 import com.example.mobile_be.repository.SongRepository;
+import com.example.mobile_be.repository.UserRepository;
+import com.example.mobile_be.security.UserDetailsImpl;
 import com.example.mobile_be.service.SongService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +49,15 @@ import lombok.RequiredArgsConstructor;
 public class CommonSongController {
     private final SongService songService;
     private final SongRepository songRepository;
+    private final UserRepository userRepository;
+    private final PlaylistRepository playlistRepository;
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        return userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getSongById(@PathVariable ObjectId id) {
@@ -59,7 +86,7 @@ public class CommonSongController {
             return;
         }
 
-        //views++
+        // views++
         songService.incrementViews(id);
 
         long fileLength = songFile.length();
@@ -125,10 +152,122 @@ public class CommonSongController {
     // return ResponseEntity.ok(recentSongs);
     // }
 
+    // response trả về song dựa trên title của song hoặc tên của artist
     @GetMapping("/search")
-    public ResponseEntity<?> searchSongsByTitle(@RequestParam String title) {
-        List<Song> results = songService.searchSongsByTitle(title);
-        return ResponseEntity.ok(results);
+    public ResponseEntity<?> searchSongsByKeyword(@RequestParam("keyword") String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<Song> songsByTitle = songRepository.findByTitleContainingIgnoreCase(keyword);
+
+        List<User> artists = userRepository.findByFullNameContainingIgnoreCase(keyword);
+        List<String> artistIds = artists.stream().map(User::getId).collect(Collectors.toList());
+        List<Song> songsByArtist = songRepository.findByArtistIdIn(artistIds);
+
+        Map<String, Song> songMap = new HashMap<>();
+        songsByTitle.forEach(song -> songMap.put(song.getId(), song));
+        songsByArtist.forEach(song -> songMap.putIfAbsent(song.getId(), song));
+        List<Song> matchedSongs = new ArrayList<>(songMap.values());
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+        String myId = userDetails.getId().toString();
+
+        List<Playlist> userPlaylists = playlistRepository.findByUserId(myId);
+
+        // Map songId -> List<playlistId>
+        Map<String, List<String>> songToPlaylistMap = new HashMap<>();
+        for (Playlist playlist : userPlaylists) {
+            for (String songId : playlist.getSongs()) {
+                songToPlaylistMap.computeIfAbsent(songId, k -> new ArrayList<>()).add(playlist.getId());
+            }
+        }
+
+        List<SongResponse> responses = matchedSongs.stream().map(song -> {
+            SongResponse res = new SongResponse();
+            res.setId(song.getId());
+            res.setTitle(song.getTitle());
+            res.setArtistId(song.getArtistId());
+            res.setAudioUrl(song.getAudioUrl());
+            res.setDuration(song.getDuration());
+            res.setViews(song.getViews());
+            res.setDescription(song.getDescription());
+            res.setCoverImageUrl(song.getCoverImageUrl());
+            res.setPlaylistIds(songToPlaylistMap.getOrDefault(song.getId(), List.of()));
+            return res;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
+    }
+
+    // response trả về playlist, artist, song
+    @GetMapping("/search/multi")
+    public ResponseEntity<?> searchAll(@RequestParam("keyword") String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(new SearchResponse());
+        }
+
+        List<Song> songsByTitle = songRepository.findByTitleContainingIgnoreCase(keyword);
+
+        List<UserResponse> artists = userRepository.findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(keyword)
+                .stream()
+                .map(art -> {
+                    UserResponse res = new UserResponse();
+                    res.setId(art.getId());
+                    res.setEmail(art.getEmail());
+                    res.setFullName(art.getFullName());
+                    res.setRole(art.getRole());
+                    res.setAvatarUrl(art.getAvatarUrl());
+                    res.setIsVerifiedArtist(art.getIsVerifiedArtist());
+                    res.setIsVerified(art.getIsVerified());
+                    return res;
+                })
+                .collect(Collectors.toList());
+
+        List<Playlist> playlists = playlistRepository.findByNameContainingIgnoreCase(keyword);
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+        String myId = userDetails.getId().toString();
+
+        List<Playlist> userPlaylists = playlistRepository.findByUserId(myId);
+
+        Map<String, List<String>> songToPlaylistMap = new HashMap<>();
+        for (Playlist playlist : userPlaylists) {
+            for (String songId : playlist.getSongs()) {
+                songToPlaylistMap.computeIfAbsent(songId, k -> new ArrayList<>()).add(playlist.getId());
+            }
+        }
+
+        List<SongResponse> songs = songsByTitle.stream().map(song -> {
+            SongResponse res = new SongResponse();
+            String songId = song.getId();
+            res.setId(songId);
+            res.setTitle(song.getTitle());
+            res.setArtistId(song.getArtistId());
+            res.setAudioUrl(song.getAudioUrl());
+            res.setDuration(song.getDuration());
+            res.setViews(song.getViews());
+            res.setDescription(song.getDescription());
+            res.setCoverImageUrl(song.getCoverImageUrl());
+            res.setPlaylistIds(songToPlaylistMap.getOrDefault(songId, List.of()));
+            return res;
+        }).collect(Collectors.toList());
+
+        //sort 
+        List<MultiResponse> mixed = new ArrayList<>();
+        int maxSize = Math.max(songs.size(), Math.max(playlists.size(), artists.size()));
+        for (int i = 0; i < maxSize; i++) {
+            if (i < songs.size())
+                mixed.add(songs.get(i));
+            if (i < artists.size())
+                mixed.add(artists.get(i));
+            if (i < playlists.size())
+                mixed.add(playlists.get(i));
+        }
+        return ResponseEntity.ok(mixed);
+
     }
 
     // filter
@@ -151,6 +290,7 @@ public class CommonSongController {
         return ResponseEntity.ok(results);
     }
 
+    // get songs by genre
     @GetMapping("/genre/{genreId}")
     public ResponseEntity<?> getSongsByGenre(@PathVariable("genreId") String genreId) {
         List<Song> songs = songRepository.findByGenreId(genreId);

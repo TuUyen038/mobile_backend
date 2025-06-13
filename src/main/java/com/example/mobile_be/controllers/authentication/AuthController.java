@@ -51,6 +51,10 @@ public class AuthController {
             request.setRole("ROLE_USER");
         }
 
+        if (request.getRole() != null && request.getRole().equals("ROLE_ADMIN")) {
+            request.setRole("ROLE_USER");
+        }
+
         userService.sendRegisterOtp(request);
 
         Map<String, String> response = new HashMap<>();
