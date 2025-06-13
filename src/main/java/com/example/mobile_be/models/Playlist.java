@@ -22,6 +22,7 @@ public class Playlist extends BaseDocument {
     private String userId;
     private String thumbnailUrl;
     private Boolean isPublic;
+    
 
     public String getId() {
         return id != null ? id.toHexString() : null;
