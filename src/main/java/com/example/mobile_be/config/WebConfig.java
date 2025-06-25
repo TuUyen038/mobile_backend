@@ -15,5 +15,4 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadPath + "/");
     }
-
 }

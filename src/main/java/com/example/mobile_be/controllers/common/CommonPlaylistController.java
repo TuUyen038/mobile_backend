@@ -33,7 +33,6 @@ import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.repository.SongRepository;
 import com.example.mobile_be.security.UserDetailsImpl;
 import com.example.mobile_be.service.ImageStorageService;
-import com.example.mobile_be.service.PlaylistService;
 
 @RestController
 @RequestMapping("/api/common/playlist")
