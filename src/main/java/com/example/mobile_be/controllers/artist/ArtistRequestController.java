@@ -12,7 +12,7 @@ import java.time.Instant;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/artist-requests")
+@RequestMapping("/api/user/artist-request")
 public class ArtistRequestController {
 
     @Autowired

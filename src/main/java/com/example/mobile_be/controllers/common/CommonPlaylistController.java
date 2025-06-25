@@ -1,9 +1,12 @@
 package com.example.mobile_be.controllers.common;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.mobile_be.dto.AddSongsRequest;
 import com.example.mobile_be.dto.PlaylistRequest;
 import com.example.mobile_be.models.Playlist;
 import com.example.mobile_be.models.Song;
@@ -90,6 +94,7 @@ public class CommonPlaylistController {
     return ResponseEntity.ok(playlist);
   }
 
+  //lấy songs của playlist theo playlistId
   @GetMapping("/{playlistId}/songs")
   public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
     ObjectId playlistObjId;
@@ -107,7 +112,6 @@ public class CommonPlaylistController {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
     }
 
-    // Convert List<String> to List<ObjectId>
     List<ObjectId> songObjectIds = playlist.getSongs()
         .stream()
         .map(ObjectId::new)
@@ -118,6 +122,21 @@ public class CommonPlaylistController {
     return ResponseEntity.ok(songs);
   }
 
+  //Lấy playlist dựa vào artistId (playlist do co isPublic = true) 
+  @GetMapping("/artist/{artistId}") 
+  public ResponseEntity<?> getPlaylistByArtistId (@PathVariable String artistId) {
+    System.out.println("Artist ID: " + artistId);
+List<Playlist> pll = playlistRepository.findByUserIdAndIsPublicTrue(artistId);
+System.out.println("Found " + pll.size() + " playlists");
+
+    if (pll.isEmpty()) {
+
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy playlist");
+    }
+
+    return ResponseEntity.ok(pll);
+
+  }
   // [GET] http://localhost:8081/api/common/playlist/search?keyword=...
   // tìm kiếm playlist theo tên
   @GetMapping("/search")
@@ -147,11 +166,7 @@ public class CommonPlaylistController {
         String url = imageStorageService.saveFile(thumbnail, "playlists");
         playlist.setThumbnailUrl(url);
 
-      } else {
-        System.out.println("Thumbnail URL: ");
-
       }
-
       playlistRepository.save(playlist);
       return ResponseEntity.status(200).body("Playlist created successfully.");
     } catch (Exception e) {
@@ -160,8 +175,8 @@ public class CommonPlaylistController {
   }
 
   // [PATCH] http://localhost:8081/api/common/playlist/change/{playlistId}
-  // Chỉ bao gồm thay đổi name, thumbnail, description
-  // neu thay doi thuoc tinh khac thi mac du 200 OK nhung thuoc tinh do van k bi
+  // Chỉ bao gồm thay đổi name, thumbnail, description, thu tu bai hat
+  // neu thay doi thuoc tinh khac thi mac du 200 OK nhung thuoc tinh do van k thay doi
   @PatchMapping("/change/{id}")
   public ResponseEntity<?> updateUser(@PathVariable("id") String id, @RequestBody Map<String, Object> updates) {
     ObjectId objectId = new ObjectId(id);
@@ -184,36 +199,82 @@ public class CommonPlaylistController {
       }
     });
 
-    playlistRepository.save(playlist);
-    return ResponseEntity.ok(playlist);
-
-  }
-
-  // [PATCH] http://localhost:8081/api/common/playlist/{playlistId}/addSong
-  // them 1 hoac nhieu bat hat vao playlist
-  @PatchMapping("/{playlistId}/addSongs")
-  public ResponseEntity<?> addSongToPlaylist(
-      @PathVariable("playlistId") String playlistId,
-      @RequestBody Map<String, List<String>> updates) {
-
-    ObjectId playlistObjId = new ObjectId(playlistId);
-    Playlist playlist = playlistRepository.findById(playlistObjId)
-        .orElseThrow(() -> new RuntimeException("Playlist not found"));
-    if (!playlist.getUserId().equals(getCurrentUser().getId())) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
-    }
-    List<String> newSongs = updates.get("songs");
-    if (newSongs != null) {
-      for (String song : newSongs) {
-        if (!playlist.getSongs().contains(song)) {
-          playlist.getSongs().add(song);
+    // Xử lý thay đổi thứ tự bài hát
+    if (updates.containsKey("songs")) {
+        try {
+            @SuppressWarnings("unchecked")
+            List<String> newOrder = (List<String>) updates.get("songs");
+            
+            List<String> currentSongs = playlist.getSongs();
+            //check newOder co du va dung songsId khong
+            if (newOrder.size() != currentSongs.size() ||
+            !new HashSet<>(newOrder).equals(new HashSet<>(currentSongs))) {
+            return ResponseEntity.badRequest().body("Invalid song list: mismatched song IDs");
         }
-      }
+            playlist.setSongs(newOrder);
+        } catch (ClassCastException e) {
+            return ResponseEntity.badRequest().body("Invalid song list format");
+        }
     }
 
     playlistRepository.save(playlist);
     return ResponseEntity.ok(playlist);
+
   }
+
+  // [PATCH] http://localhost:8081/api/common/playlist/addSong
+  // them 1 hoac nhieu bat hat vao playlist
+@PostMapping("/addSongs")
+public ResponseEntity<?> addMultipleSongsToLibrary(@RequestBody AddSongsRequest request) {
+    List<String> songIds = request.getSongs();
+    String playlistId = request.getPlaylistId();
+    
+    if (songIds == null || songIds.isEmpty()) {
+        return ResponseEntity.badRequest().body("Missing songIds");
+    }
+
+    User currentUser = getCurrentUser();
+    String userId = currentUser.getId();
+
+    Playlist targetPlaylist;
+
+    if (playlistId != null && !playlistId.trim().isEmpty()) {
+        // TH1: Người dùng chỉ định playlist
+        targetPlaylist = playlistRepository.findById(new ObjectId(playlistId))
+                .orElseThrow(() -> new RuntimeException("Playlist not found"));
+        if (!targetPlaylist.getUserId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+        }
+    } else {
+        // TH2: Không có playlistId → dùng "Favorites"
+        System.out.println(userId);
+        Optional<Playlist> optional = playlistRepository.findByUserIdAndName(userId, "Favorites");
+        if (optional.isPresent()) {
+            targetPlaylist = optional.get();
+        } else {
+            targetPlaylist = new Playlist();
+            targetPlaylist.setName("Favorites");
+            targetPlaylist.setUserId(userId);
+            targetPlaylist.setIsPublic(false);
+            targetPlaylist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
+            targetPlaylist.setDescription("A list of your favorite songs");
+            targetPlaylist.setSongs(new ArrayList<>());
+
+            playlistRepository.save(targetPlaylist);
+        }
+    }
+
+    for (String songId : songIds) {
+        if (!targetPlaylist.getSongs().contains(songId)) {
+            targetPlaylist.getSongs().add(songId);
+        }
+    }
+        System.out.println("hiiiiiiiiiiiii");
+
+    playlistRepository.save(targetPlaylist);
+    return ResponseEntity.ok("Songs added successfully");
+}
+
 
   // [PATCH] http://localhost:8081/api/common/playlist/{playlistId}/removeSong
   // xoa 1 bai hat khoi playlist

@@ -1,9 +1,11 @@
 package com.example.mobile_be.models;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.TextIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
@@ -16,12 +18,14 @@ import lombok.EqualsAndHashCode;
 public class Playlist extends BaseDocument {
     @Id
     private ObjectId id;
+    @TextIndexed
     private String name;
     private String description;
-    private ArrayList<String> songs = new ArrayList<>();
+    private List<String> songs = new ArrayList<>();
     private String userId;
     private String thumbnailUrl;
     private Boolean isPublic;
+    
 
     public String getId() {
         return id != null ? id.toHexString() : null;

@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/login", "/api/register",
                         "/api/verify-email","/api/resend-otp", "/api/password/**",
                         "/api/artist/song/**", "/error", "/uploads/**").permitAll()
+                        .requestMatchers("/api/common/song/stream/**").permitAll()  
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/artist/**").hasAnyRole("ARTIST", "ADMIN")
                         .requestMatchers("/api/common/**").hasAnyRole("USER", "ADMIN", "ARTIST")

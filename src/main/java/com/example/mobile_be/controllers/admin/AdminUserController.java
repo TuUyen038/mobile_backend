@@ -1,7 +1,10 @@
 package com.example.mobile_be.controllers.admin;
 
 import com.example.mobile_be.models.User;
+import com.example.mobile_be.repository.ArtistRequestRepository;
 import com.example.mobile_be.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +15,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/admin/users")
 
 public class AdminUserController {
-
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final ArtistRequestRepository artistRequestRepository;
 
     // [GET] http://localhost:8081/api/admin/users
     // Lấy tất cả người dùng
@@ -49,22 +52,6 @@ public class AdminUserController {
                     .body("Đã có lỗi: " + e.getMessage());
         }
     }
-
-    // [PATCH] http://localhost:8081/api/admin/users/change
-    // admin chi co the sua isVerifiedArtist va role cua nguoi dung
-    // @PatchMapping("/change/{id}")
-    // public ResponseEntity<?> patchUser(@PathVariable("id") String id,
-    // @RequestBody User userData) {
-    // Optional<User> user = userRepository.findById(new ObjectId(id));
-    // if (user.isEmpty()) {
-    // return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found in
-    // /admin/users/change");
-    // }
-    // User existingUser = user.get();
-    // existingUser.setIsVerifiedArtist(true);
-    // User updatedUser = userRepository.save(existingUser);
-    // return ResponseEntity.ok(updatedUser);
-    // }
 
     // [DELETE] http://localhost:8081/api/admin/users/delete/{id}
     // Xóa người dùng

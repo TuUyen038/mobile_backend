@@ -29,9 +29,6 @@ public class CommonUserController {
     private UserService userService;
 
     @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
 
     // [GET] http://localhost:8081/api/common/users/search?keyword=...

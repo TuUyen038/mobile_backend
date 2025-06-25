@@ -5,45 +5,111 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.TextCriteria;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.mobile_be.dto.PlaylistResponse;
+import com.example.mobile_be.dto.SearchResponse;
+import com.example.mobile_be.dto.SongResponse;
+import com.example.mobile_be.dto.UserResponse;
+import com.example.mobile_be.models.MultiResponse;
+import com.example.mobile_be.models.Playlist;
 import com.example.mobile_be.models.Song;
+import com.example.mobile_be.models.User;
+import com.example.mobile_be.repository.PlaylistRepository;
+import com.example.mobile_be.repository.SongRepository;
+import com.example.mobile_be.repository.UserRepository;
+import com.example.mobile_be.security.UserDetailsImpl;
 import com.example.mobile_be.service.SongService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/common/song")
 public class CommonSongController {
     private final SongService songService;
+    private final SongRepository songRepository;
+    private final UserRepository userRepository;
+    private final PlaylistRepository playlistRepository;
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
-    public CommonSongController(SongService s) {
-        songService = s;
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        return userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
+    // get song by songId + trả về artistName
     @GetMapping("/{id}")
     public ResponseEntity<?> getSongById(@PathVariable ObjectId id) {
         Optional<Song> songOpt = songService.getSongById(id);
         if (songOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Song not found!");
         }
-        return ResponseEntity.ok(songOpt.get());
+
+        Song song = songOpt.get();
+
+        // Tìm nghệ sĩ
+        Optional<User> artistOpt = userRepository.findById(new ObjectId(song.getArtistId()));
+        String artistName = artistOpt.map(User::getFullName).orElse("Unknown Artist");
+
+        SongResponse response = new SongResponse();
+        response.setId(song.getId());
+        response.setTitle(song.getTitle());
+        response.setDescription(song.getDescription());
+        response.setAudioUrl(song.getAudioUrl());
+        response.setCoverImageUrl(song.getCoverImageUrl());
+        response.setArtistId(song.getArtistId());
+        response.setArtistName(artistName);
+        response.setDuration(song.getDuration());
+        response.setViews(song.getViews());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // get song by artistId
+    @GetMapping("/artist/{artistId}")
+    public ResponseEntity<?> getSongByArtistId(@PathVariable String artistId) {
+        List<Song> songs = songRepository.findByArtistId(artistId);
+        if (songs.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No result");
+        }
+        return ResponseEntity.ok(songs);
     }
 
     // stream file .mp3
     @GetMapping("/stream/{id}")
-    public void streamSong(@PathVariable ObjectId id, HttpServletRequest req, HttpServletResponse res)
+    public void streamSong(@PathVariable("id") ObjectId id, HttpServletRequest req, HttpServletResponse res)
             throws IOException {
         Optional<Song> test = songService.getSongById(id);
         if (test.isEmpty()) {
@@ -58,6 +124,9 @@ public class CommonSongController {
             res.getWriter().write("File not found!!");
             return;
         }
+
+        // views++
+        songService.incrementViews(id);
 
         long fileLength = songFile.length();
         String range = req.getHeader("Range");
@@ -122,9 +191,224 @@ public class CommonSongController {
     // return ResponseEntity.ok(recentSongs);
     // }
 
+    // response trả về song dựa trên title của song hoặc tên của artist
     @GetMapping("/search")
-    public ResponseEntity<?> searchSongsByTitle(@RequestParam String title) {
-        List<Song> results = songService.searchSongsByTitle(title);
+    public ResponseEntity<?> searchSongsByKeyword(@RequestParam("keyword") String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<Song> songsByTitle = songRepository.findByTitleContainingIgnoreCase(keyword);
+
+        List<User> artists = userRepository.findByFullNameContainingIgnoreCase(keyword);
+        List<String> artistIds = artists.stream().map(User::getId).collect(Collectors.toList());
+        List<Song> songsByArtist = songRepository.findByArtistIdIn(artistIds);
+
+        Map<String, Song> songMap = new HashMap<>();
+        songsByTitle.forEach(song -> songMap.put(song.getId(), song));
+        songsByArtist.forEach(song -> songMap.putIfAbsent(song.getId(), song));
+        List<Song> matchedSongs = new ArrayList<>(songMap.values());
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+        String myId = userDetails.getId().toString();
+
+        List<Playlist> userPlaylists = playlistRepository.findByUserId(myId);
+
+        // Map songId -> List<playlistId>
+        Map<String, List<String>> songToPlaylistMap = new HashMap<>();
+        for (Playlist playlist : userPlaylists) {
+            for (String songId : playlist.getSongs()) {
+                songToPlaylistMap.computeIfAbsent(songId, k -> new ArrayList<>()).add(playlist.getId());
+            }
+        }
+
+        List<SongResponse> responses = matchedSongs.stream().map(song -> {
+            SongResponse res = new SongResponse();
+            res.setId(song.getId());
+            res.setTitle(song.getTitle());
+            res.setArtistId(song.getArtistId());
+            res.setAudioUrl(song.getAudioUrl());
+            res.setDuration(song.getDuration());
+            res.setViews(song.getViews());
+            res.setDescription(song.getDescription());
+            res.setCoverImageUrl(song.getCoverImageUrl());
+            res.setPlaylistIds(songToPlaylistMap.getOrDefault(song.getId(), List.of()));
+            return res;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
+    }
+
+    // hàm lấy tất cả bài hát trong library của mình
+    public Set<String> getAllSongIdsInUserLibrary(String userId) {
+        Query query = new Query(Criteria.where("userId").is(userId));
+        query.fields().include("songs");
+
+        List<Playlist> playlists = mongoTemplate.find(query, Playlist.class);
+
+        Set<String> songIdSet = new HashSet<>();
+        for (Playlist p : playlists) {
+            if (p.getSongs() != null) {
+                songIdSet.addAll(p.getSongs());
+            }
+        }
+        return songIdSet;
+    }
+
+    @GetMapping("/search/multi")
+    public ResponseEntity<?> searchAll(@RequestParam("keyword") String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return ResponseEntity.ok(new SearchResponse()); // trả về object trống
+        }
+
+        // 1. Lấy artist
+        List<UserResponse> artists = userRepository
+                .findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(keyword)
+                .stream()
+                .map(art -> {
+                    UserResponse res = new UserResponse();
+                    res.setId(art.getId());
+                    res.setEmail(art.getEmail());
+                    res.setFullName(art.getFullName());
+                    res.setRole(art.getRole());
+                    res.setAvatarUrl(art.getAvatarUrl());
+                    res.setIsVerifiedArtist(art.getIsVerifiedArtist());
+                    res.setIsVerified(art.getIsVerified());
+                    return res;
+                })
+                .collect(Collectors.toList());
+
+        String myId = null;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof UserDetailsImpl) {
+            UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+            myId = userDetails.getId().toString();
+        }
+        final String finalMyId = myId;
+
+        // Load tất cả playlist của user (Library)
+        Set<String> playlistIdsInLibrary = mongoTemplate.find(
+                Query.query(Criteria.where("userId").is(finalMyId)), Playlist.class)
+                .stream()
+                .map(Playlist::getId)
+                .collect(Collectors.toSet());
+
+        // playlist khong phai cua minh
+        Criteria playlistCriteria = new Criteria().andOperator(
+                Criteria.where("isPublic").is(true),
+                Criteria.where("userId").ne(finalMyId));
+
+        Query playlistQuery = new Query(playlistCriteria);
+
+        if (keyword.length() >= 3) {
+            TextCriteria playlistText = TextCriteria.forDefaultLanguage().matching(keyword);
+            playlistQuery.addCriteria(playlistText);
+        } else {
+            playlistQuery.addCriteria(Criteria.where("name").regex(".*" + Pattern.quote(keyword) + ".*", "i"));
+        }
+        List<Playlist> listplaylist = mongoTemplate.find(playlistQuery, Playlist.class);
+        //playlist kem theo isInLibrary
+        List<PlaylistResponse> playlists = listplaylist.stream().map(pll -> {
+            PlaylistResponse res = new PlaylistResponse();
+            res.setId(pll.getId());
+            res.setName(pll.getName());
+            res.setDescription(pll.getDescription());
+            res.setThumbnailUrl(pll.getThumbnailUrl());
+            res.setIsInLibrary(playlistIdsInLibrary.contains(pll.getId()));
+            return res;
+        }).collect(Collectors.toList());
+        System.out.println("playlist: ");
+        for (PlaylistResponse playlistResponse : playlists) {
+            System.out.println(playlistResponse.getName());
+        }
+
+        // song public hoac cua minh
+        Criteria songCriteria = new Criteria();
+        if (myId != null) {
+            songCriteria = new Criteria().orOperator(
+                    Criteria.where("isPublic").is(true),
+                    Criteria.where("artistId").is(myId));
+        } else {
+            songCriteria = Criteria.where("isPublic").is(true);
+        }
+
+        Query songQuery = new Query().addCriteria(songCriteria);
+
+        if (keyword.length() >= 3) {
+            TextCriteria songText = TextCriteria.forDefaultLanguage().matching(keyword);
+            songQuery.addCriteria(songText);
+        } else {
+            songQuery.addCriteria(Criteria.where("title").regex(".*" + Pattern.quote(keyword) + ".*", "i"));
+        }
+        List<Song> listSong = mongoTemplate.find(songQuery, Song.class);
+
+        // songs in library
+        Set<String> songIdsInLibrary = getAllSongIdsInUserLibrary(finalMyId);
+
+        // tra ve ket qua songs co isInlibrary
+        List<SongResponse> songs = listSong.stream().map(song -> {
+            SongResponse res = new SongResponse();
+            res.setId(song.getId());
+            res.setTitle(song.getTitle());
+            res.setArtistId(song.getArtistId());
+            res.setAudioUrl(song.getAudioUrl());
+            res.setDuration(song.getDuration());
+            res.setViews(song.getViews());
+            res.setDescription(song.getDescription());
+            res.setCoverImageUrl(song.getCoverImageUrl());
+            res.setIsInLibrary(songIdsInLibrary.contains(song.getId()));
+            return res;
+        }).collect(Collectors.toList());
+
+        // 4. Trộn kết quả
+        List<MultiResponse> mixed = new ArrayList<>();
+        int maxSize = Math.max(songs.size(), Math.max(playlists.size(), artists.size()));
+
+        for (int i = 0; i < maxSize; i++) {
+            if (i < songs.size()) {
+                mixed.add(new MultiResponse("song", songs.get(i)));
+            }
+            if (i < artists.size()) {
+                mixed.add(new MultiResponse("artist", artists.get(i)));
+            }
+            if (i < playlists.size()) {
+                mixed.add(new MultiResponse("playlist", playlists.get(i)));
+            }
+        }
+
+        return ResponseEntity.ok(mixed);
+
+    }
+
+    // filter
+    @GetMapping("/filter")
+    public ResponseEntity<?> filterSongsByCreatedAt(@RequestParam String filter) {
+        List<Song> results;
+        switch (filter) {
+            case "newest":
+                results = songRepository.findAllByOrderByCreatedAtDesc();
+                break;
+            case "trending":
+                results = songRepository.findByOrderByViewsDesc();
+                break;
+            case "all":
+                results = songRepository.findAll();
+                break;
+            default:
+                return ResponseEntity.badRequest().body("Invalid filter: use 'newest', 'trending' or 'all'");
+        }
         return ResponseEntity.ok(results);
     }
+
+    // get songs by genre
+    @GetMapping("/genre/{genreId}")
+    public ResponseEntity<?> getSongsByGenre(@PathVariable("genreId") String genreId) {
+        List<Song> songs = songRepository.findByGenreId(genreId);
+        if (songs.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No songs found for this genre.");
+        }
+        return ResponseEntity.ok(songs);
+    }
+
 }

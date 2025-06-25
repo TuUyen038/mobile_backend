@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.index.TextIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
@@ -15,11 +17,13 @@ import lombok.EqualsAndHashCode;
 
 @Document(collection = "user")
 public class User extends BaseDocument {
+    
     @Id
     private ObjectId id;
     private String email;
     private String password;
     private String lastName;
+    @TextIndexed
     private String fullName;
     private String role;
     private String avatarUrl;
