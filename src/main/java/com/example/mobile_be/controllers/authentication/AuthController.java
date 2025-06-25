@@ -10,12 +10,15 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.mobile_be.dto.AuthResponse;
 import com.example.mobile_be.dto.LoginRequest;
 import com.example.mobile_be.dto.RegisterRequest;
 import com.example.mobile_be.dto.VerifyRequest;
+import com.example.mobile_be.models.Playlist;
 import com.example.mobile_be.models.User;
+import com.example.mobile_be.repository.PlaylistRepository;
 import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.security.JwtUtil;
 import com.example.mobile_be.security.UserDetailsImpl;
@@ -26,6 +29,8 @@ import com.example.mobile_be.service.UserService;
 public class AuthController {
 
     private final PasswordEncoder passwordEncoder;
+    @Autowired
+    PlaylistRepository playlistRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -66,17 +71,29 @@ public class AuthController {
     @PostMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(@RequestBody VerifyRequest request) {
         boolean success = userService.verifyEmail(request.getEmail(), request.getOtp());
-
         if (!success) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired OTP.");
         }
-
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         }
-
         String token = jwtUtil.generateToken(new UserDetailsImpl(user));
+boolean exists = playlistRepository.existsByUserIdAndName(user.getId(), "Favorites");
+if (!exists) {
+        try {
+            Playlist playlist = new Playlist();
+            playlist.setName("Favorites");
+            playlist.setDescription("A list of your favorite songs");
+            playlist.setUserId(user.getId());
+            playlist.setIsPublic(false);
+            playlist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
+
+            playlistRepository.save(playlist);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Loi o tao playlist: " + e.getMessage());
+        }}
         return ResponseEntity.ok(new AuthResponse(token));
     }
 

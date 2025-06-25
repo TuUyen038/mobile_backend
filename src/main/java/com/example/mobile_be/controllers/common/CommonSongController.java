@@ -13,19 +13,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.TextCriteria;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.mobile_be.dto.PlaylistResponse;
 import com.example.mobile_be.dto.SearchResponse;
 import com.example.mobile_be.dto.SongResponse;
 import com.example.mobile_be.dto.UserResponse;
@@ -51,6 +59,8 @@ public class CommonSongController {
     private final SongRepository songRepository;
     private final UserRepository userRepository;
     private final PlaylistRepository playlistRepository;
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -59,13 +69,42 @@ public class CommonSongController {
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
+    // get song by songId + trả về artistName
     @GetMapping("/{id}")
     public ResponseEntity<?> getSongById(@PathVariable ObjectId id) {
         Optional<Song> songOpt = songService.getSongById(id);
         if (songOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Song not found!");
         }
-        return ResponseEntity.ok(songOpt.get());
+
+        Song song = songOpt.get();
+
+        // Tìm nghệ sĩ
+        Optional<User> artistOpt = userRepository.findById(new ObjectId(song.getArtistId()));
+        String artistName = artistOpt.map(User::getFullName).orElse("Unknown Artist");
+
+        SongResponse response = new SongResponse();
+        response.setId(song.getId());
+        response.setTitle(song.getTitle());
+        response.setDescription(song.getDescription());
+        response.setAudioUrl(song.getAudioUrl());
+        response.setCoverImageUrl(song.getCoverImageUrl());
+        response.setArtistId(song.getArtistId());
+        response.setArtistName(artistName);
+        response.setDuration(song.getDuration());
+        response.setViews(song.getViews());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // get song by artistId
+    @GetMapping("/artist/{artistId}")
+    public ResponseEntity<?> getSongByArtistId(@PathVariable String artistId) {
+        List<Song> songs = songRepository.findByArtistId(artistId);
+        if (songs.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No result");
+        }
+        return ResponseEntity.ok(songs);
     }
 
     // stream file .mp3
@@ -201,16 +240,31 @@ public class CommonSongController {
         return ResponseEntity.ok(responses);
     }
 
-    // response trả về playlist, artist, song
+    // hàm lấy tất cả bài hát trong library của mình
+    public Set<String> getAllSongIdsInUserLibrary(String userId) {
+        Query query = new Query(Criteria.where("userId").is(userId));
+        query.fields().include("songs");
+
+        List<Playlist> playlists = mongoTemplate.find(query, Playlist.class);
+
+        Set<String> songIdSet = new HashSet<>();
+        for (Playlist p : playlists) {
+            if (p.getSongs() != null) {
+                songIdSet.addAll(p.getSongs());
+            }
+        }
+        return songIdSet;
+    }
+
     @GetMapping("/search/multi")
     public ResponseEntity<?> searchAll(@RequestParam("keyword") String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(new SearchResponse());
+        if (!StringUtils.hasText(keyword)) {
+            return ResponseEntity.ok(new SearchResponse()); // trả về object trống
         }
 
-        List<Song> songsByTitle = songRepository.findByTitleContainingIgnoreCase(keyword);
-
-        List<UserResponse> artists = userRepository.findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(keyword)
+        // 1. Lấy artist
+        List<UserResponse> artists = userRepository
+                .findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(keyword)
                 .stream()
                 .map(art -> {
                     UserResponse res = new UserResponse();
@@ -225,25 +279,77 @@ public class CommonSongController {
                 })
                 .collect(Collectors.toList());
 
-        List<Playlist> playlists = playlistRepository.findByNameContainingIgnoreCase(keyword);
-
+        String myId = null;
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
-        String myId = userDetails.getId().toString();
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof UserDetailsImpl) {
+            UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+            myId = userDetails.getId().toString();
+        }
+        final String finalMyId = myId;
 
-        List<Playlist> userPlaylists = playlistRepository.findByUserId(myId);
+        // Load tất cả playlist của user (Library)
+        Set<String> playlistIdsInLibrary = mongoTemplate.find(
+                Query.query(Criteria.where("userId").is(finalMyId)), Playlist.class)
+                .stream()
+                .map(Playlist::getId)
+                .collect(Collectors.toSet());
 
-        Map<String, List<String>> songToPlaylistMap = new HashMap<>();
-        for (Playlist playlist : userPlaylists) {
-            for (String songId : playlist.getSongs()) {
-                songToPlaylistMap.computeIfAbsent(songId, k -> new ArrayList<>()).add(playlist.getId());
-            }
+        // playlist khong phai cua minh
+        Criteria playlistCriteria = new Criteria().andOperator(
+                Criteria.where("isPublic").is(true),
+                Criteria.where("userId").ne(finalMyId));
+
+        Query playlistQuery = new Query(playlistCriteria);
+
+        if (keyword.length() >= 3) {
+            TextCriteria playlistText = TextCriteria.forDefaultLanguage().matching(keyword);
+            playlistQuery.addCriteria(playlistText);
+        } else {
+            playlistQuery.addCriteria(Criteria.where("name").regex(".*" + Pattern.quote(keyword) + ".*", "i"));
+        }
+        List<Playlist> listplaylist = mongoTemplate.find(playlistQuery, Playlist.class);
+        //playlist kem theo isInLibrary
+        List<PlaylistResponse> playlists = listplaylist.stream().map(pll -> {
+            PlaylistResponse res = new PlaylistResponse();
+            res.setId(pll.getId());
+            res.setName(pll.getName());
+            res.setDescription(pll.getDescription());
+            res.setThumbnailUrl(pll.getThumbnailUrl());
+            res.setIsInLibrary(playlistIdsInLibrary.contains(pll.getId()));
+            return res;
+        }).collect(Collectors.toList());
+        System.out.println("playlist: ");
+        for (PlaylistResponse playlistResponse : playlists) {
+            System.out.println(playlistResponse.getName());
         }
 
-        List<SongResponse> songs = songsByTitle.stream().map(song -> {
+        // song public hoac cua minh
+        Criteria songCriteria = new Criteria();
+        if (myId != null) {
+            songCriteria = new Criteria().orOperator(
+                    Criteria.where("isPublic").is(true),
+                    Criteria.where("artistId").is(myId));
+        } else {
+            songCriteria = Criteria.where("isPublic").is(true);
+        }
+
+        Query songQuery = new Query().addCriteria(songCriteria);
+
+        if (keyword.length() >= 3) {
+            TextCriteria songText = TextCriteria.forDefaultLanguage().matching(keyword);
+            songQuery.addCriteria(songText);
+        } else {
+            songQuery.addCriteria(Criteria.where("title").regex(".*" + Pattern.quote(keyword) + ".*", "i"));
+        }
+        List<Song> listSong = mongoTemplate.find(songQuery, Song.class);
+
+        // songs in library
+        Set<String> songIdsInLibrary = getAllSongIdsInUserLibrary(finalMyId);
+
+        // tra ve ket qua songs co isInlibrary
+        List<SongResponse> songs = listSong.stream().map(song -> {
             SongResponse res = new SongResponse();
-            String songId = song.getId();
-            res.setId(songId);
+            res.setId(song.getId());
             res.setTitle(song.getTitle());
             res.setArtistId(song.getArtistId());
             res.setAudioUrl(song.getAudioUrl());
@@ -251,21 +357,26 @@ public class CommonSongController {
             res.setViews(song.getViews());
             res.setDescription(song.getDescription());
             res.setCoverImageUrl(song.getCoverImageUrl());
-            res.setPlaylistIds(songToPlaylistMap.getOrDefault(songId, List.of()));
+            res.setIsInLibrary(songIdsInLibrary.contains(song.getId()));
             return res;
         }).collect(Collectors.toList());
 
-        //sort 
+        // 4. Trộn kết quả
         List<MultiResponse> mixed = new ArrayList<>();
         int maxSize = Math.max(songs.size(), Math.max(playlists.size(), artists.size()));
+
         for (int i = 0; i < maxSize; i++) {
-            if (i < songs.size())
-                mixed.add(songs.get(i));
-            if (i < artists.size())
-                mixed.add(artists.get(i));
-            if (i < playlists.size())
-                mixed.add(playlists.get(i));
+            if (i < songs.size()) {
+                mixed.add(new MultiResponse("song", songs.get(i)));
+            }
+            if (i < artists.size()) {
+                mixed.add(new MultiResponse("artist", artists.get(i)));
+            }
+            if (i < playlists.size()) {
+                mixed.add(new MultiResponse("playlist", playlists.get(i)));
+            }
         }
+
         return ResponseEntity.ok(mixed);
 
     }
