@@ -5,8 +5,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
@@ -134,6 +136,7 @@ public class CommonPlaylistController {
     if (!playlist.getUserId().equals(getCurrentUser().getId()) && !playlist.getIsPublic()) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
     }
+    
 
     List<ObjectId> songObjectIds = playlist.getSongs()
         .stream()
@@ -147,24 +150,33 @@ public class CommonPlaylistController {
     }
     Set<String> songIdsInLibrary = getAllSongIdsInUserLibrary(myId);
 
-    List<Song> songS = songRepository.findByIdIn(songObjectIds);
-    List<SongResponse> songs = songS
-        .stream()
-        .map(song -> {
-          SongResponse res = new SongResponse();
-          res.setId(song.getId());
-          res.setTitle(song.getTitle());
-          res.setArtistId(song.getArtistId());
-          res.setAudioUrl(song.getAudioUrl());
-          res.setDuration(song.getDuration());
-          res.setViews(song.getViews());
-          res.setDescription(song.getDescription());
-          res.setCoverImageUrl(song.getCoverImageUrl());
-          res.setIsInLibrary(songIdsInLibrary.contains(song.getId()));
-          return res;
-        })
-        .collect(Collectors.toList());
-    return ResponseEntity.ok(songs);
+    List<Song> songsInDb = songRepository.findByIdIn(songObjectIds);
+
+    // Tạo map để tra nhanh theo id
+    Map<String, Song> songMap = songsInDb.stream()
+        .collect(Collectors.toMap(song -> song.getId().toString(), Function.identity()));
+
+    // Duyệt theo thứ tự gốc
+    List<SongResponse> orderedSongs = new ArrayList<>();
+    for (String songId : playlist.getSongs()) {
+      Song song = songMap.get(songId);
+      if (song == null)
+        continue;
+
+      SongResponse res = new SongResponse();
+      res.setId(song.getId());
+      res.setTitle(song.getTitle());
+      res.setArtistId(song.getArtistId());
+      res.setAudioUrl(song.getAudioUrl());
+      res.setDuration(song.getDuration());
+      res.setViews(song.getViews());
+      res.setDescription(song.getDescription());
+      res.setCoverImageUrl(song.getCoverImageUrl());
+      res.setIsInLibrary(songIdsInLibrary.contains(song.getId()));
+      orderedSongs.add(res);
+    }
+
+    return ResponseEntity.ok(orderedSongs);
   }
 
   // Lấy playlist dựa vào artistId (playlist do co isPublic = true)
