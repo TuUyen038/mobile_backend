@@ -5,6 +5,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -85,7 +89,7 @@ public class CommonSongController {
         return songIdSet;
     }
 
-    // get song by songId + trả về artistName
+    // get song by songId + trả về artistName + co lyric
     @GetMapping("/{id}")
     public ResponseEntity<?> getSongById(@PathVariable ObjectId id) {
         Optional<Song> songOpt = songService.getSongById(id);
@@ -99,6 +103,16 @@ public class CommonSongController {
         Optional<User> artistOpt = userRepository.findById(new ObjectId(song.getArtistId()));
         String artistName = artistOpt.map(User::getFullName).orElse("Unknown Artist");
 
+        // tra ve lyric
+        String lyricPath = song.getLyricUrl();
+        List<String> lyrics = new ArrayList<>();
+        try {
+            Path path = Paths.get("." + lyricPath);
+            lyrics = Files.readAllLines(path, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.err.println("Lỗi đọc lyrics: " + e.getMessage());
+        }
+
         SongResponse response = new SongResponse();
         response.setId(song.getId());
         response.setTitle(song.getTitle());
@@ -109,11 +123,12 @@ public class CommonSongController {
         response.setArtistName(artistName);
         response.setDuration(song.getDuration());
         response.setViews(song.getViews());
+        response.setLyrics(lyrics);
 
         return ResponseEntity.ok(response);
     }
 
-    //api lay playlistId cua song
+    // api lay playlistId cua song
     @GetMapping("/{id}/playlist")
     public ResponseEntity<?> getSongPlaylistById(@PathVariable String id) {
         Optional<Song> songOpt = songService.getSongById(new ObjectId(id));
@@ -136,7 +151,7 @@ public class CommonSongController {
                 songToPlaylistMap.computeIfAbsent(songId, k -> new ArrayList<>()).add(playlist.getId());
             }
         }
-        return ResponseEntity.ok(songToPlaylistMap.getOrDefault(songIdStr, List.of())); 
+        return ResponseEntity.ok(songToPlaylistMap.getOrDefault(songIdStr, List.of()));
     }
 
     // get song by artistId
