@@ -63,40 +63,48 @@ private MongoTemplate mongoTemplate;
         return songRepository.findByTitleContainingIgnoreCase(title);
     }
 
-    public Song saveSongFile(Song song, MultipartFile file) throws IOException {
+   public Song saveSongFile(Song song, MultipartFile file) throws IOException {
 
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("Empty file.");
-        }
-        String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
-
-        if (!originalFileName.toLowerCase().endsWith(".mp3") || originalFileName.contains("..")) {
-            throw new IllegalArgumentException("Invalid file name.");
-        }
-
-        Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath))
-            Files.createDirectories(uploadPath);
-        String fileName = originalFileName;
-        Path filePath = uploadPath.resolve(fileName);
-
-        // neu ten trung thi them (count) o dang sau
-        int count = 1;
-        while (Files.exists(filePath)) {
-            String name = originalFileName.substring(0, originalFileName.lastIndexOf("."));
-            String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
-            fileName = name + "(" + count++ + ")" + extension;
-            filePath = uploadPath.resolve((fileName));
-        }
-
-        Files.copy(file.getInputStream(), filePath);
-
-        // ghi de len file trung ten truoc do luon
-        // Files.copy(file.getInputStream(), filePath,
-        // StandardCopyOption.REPLACE_EXISTING);
-
-        song.setAudioUrl(UPLOAD_DIR + fileName);
-        songRepository.save(song);
-        return songRepository.save(song);
+    if (file.isEmpty()) {
+        throw new IllegalArgumentException("Empty file.");
     }
+
+    String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+
+    if (originalFileName.contains("..")) {
+        throw new IllegalArgumentException("Invalid file name.");
+    }
+
+    String lower = originalFileName.toLowerCase();
+    if (!lower.endsWith(".mp3") && !lower.endsWith(".lrc")) {
+        throw new IllegalArgumentException("Only .mp3 and .lrc files are supported.");
+    }
+
+    String extension = lower.substring(lower.lastIndexOf("."));
+    String subDir = extension.equals(".mp3") ? "songs" : "lyrics";
+    Path uploadPath = Paths.get(UPLOAD_DIR, subDir);
+    Files.createDirectories(uploadPath);
+
+    String fileName = originalFileName;
+    Path filePath = uploadPath.resolve(fileName);
+
+    int count = 1;
+    while (Files.exists(filePath)) {
+        String name = originalFileName.substring(0, originalFileName.lastIndexOf("."));
+        fileName = name + "(" + count++ + ")" + extension;
+        filePath = uploadPath.resolve(fileName);
+    }
+
+    Files.copy(file.getInputStream(), filePath);
+
+    String fileUrl = "/" + UPLOAD_DIR + "/" + subDir + "/" + fileName;
+    if (extension.equals(".mp3")) {
+        song.setAudioUrl(fileUrl);
+    } else if (extension.equals(".lrc")) {
+        song.setLyricUrl(fileUrl);
+    }
+
+    return songRepository.save(song);
+}
+
 }

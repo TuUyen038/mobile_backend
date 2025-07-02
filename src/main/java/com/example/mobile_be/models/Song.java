@@ -34,7 +34,7 @@ public class Song extends BaseDocument {
     private ArrayList<String> genreId=  new ArrayList<>();
     private Boolean isApproved;
     private Boolean isPublic;
-    private String lyric;
+    private String lyricUrl;
     private Double duration;
     private Long views = 0l;
     private Date lastPlayedAt;

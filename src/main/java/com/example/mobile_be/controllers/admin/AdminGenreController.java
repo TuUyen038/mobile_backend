@@ -52,7 +52,7 @@ public class AdminGenreController {
 
             if (data.getThumbnail() != null && !data.getThumbnail().isEmpty()) {
                 try {
-                    String url = imageStorageService.saveFile(data.getThumbnail(), "genres");
+                    String url = imageStorageService.saveFile(data.getThumbnail(), "images");
                     genre.setThumbnailUrl(url);
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to save thumbnail image", e);
@@ -92,7 +92,7 @@ public class AdminGenreController {
 
         if (data.getThumbnail() != null && !data.getThumbnail().isEmpty()) {
             try {
-                String url = imageStorageService.saveFile(data.getThumbnail(), "genres");
+                String url = imageStorageService.saveFile(data.getThumbnail(), "images");
                 genre.setThumbnailUrl(url);
             } catch (Exception e) {
                 return ResponseEntity

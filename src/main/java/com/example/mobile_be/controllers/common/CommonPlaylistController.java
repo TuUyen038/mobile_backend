@@ -184,7 +184,6 @@ public class CommonPlaylistController {
   public ResponseEntity<?> getPlaylistByArtistId(@PathVariable String artistId) {
     System.out.println("Artist ID: " + artistId);
     List<Playlist> pll = playlistRepository.findByUserIdAndIsPublicTrue(artistId);
-    System.out.println("Found " + pll.size() + " playlists");
 
     if (pll.isEmpty()) {
 
@@ -221,7 +220,7 @@ public class CommonPlaylistController {
       MultipartFile thumbnail = request.getThumbnail();
 
       if (thumbnail != null && !thumbnail.isEmpty()) {
-        String url = imageStorageService.saveFile(thumbnail, "playlists");
+        String url = imageStorageService.saveFile(thumbnail, "images");
         playlist.setThumbnailUrl(url);
 
       }
@@ -315,7 +314,7 @@ public class CommonPlaylistController {
         targetPlaylist.setName("Favorites");
         targetPlaylist.setUserId(userId);
         targetPlaylist.setIsPublic(false);
-        targetPlaylist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
+        targetPlaylist.setThumbnailUrl("/uploads/images/default-img.jpg");
         targetPlaylist.setDescription("A list of your favorite songs");
         targetPlaylist.setSongs(new ArrayList<>());
 

@@ -21,4 +21,5 @@ public class SongResponse {
     private Long views = 0l;
     private Double duration;
     private String artistName;
+    private List<String> lyrics;
 }
