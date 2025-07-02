@@ -136,20 +136,8 @@ public class CommonSongController {
             }
         }
 
-        Set<String> songIdsInLibrary = getAllSongIdsInUserLibrary(myId);
-
         SongResponse response = new SongResponse();
-        response.setId(song.getId());
-        response.setTitle(song.getTitle());
-        response.setDescription(song.getDescription());
-        response.setAudioUrl(song.getAudioUrl());
-        response.setCoverImageUrl(song.getCoverImageUrl());
-        response.setArtistId(song.getArtistId());
-        response.setDuration(song.getDuration());
-        response.setViews(song.getViews());
         response.setPlaylistIds(songToPlaylistMap.getOrDefault(songIdStr, List.of()));
-        response.setIsInLibrary(songIdsInLibrary.contains(songIdStr));
-
         return ResponseEntity.ok(response);
     }
 
