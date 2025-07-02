@@ -113,6 +113,7 @@ public class CommonSongController {
         return ResponseEntity.ok(response);
     }
 
+    //api lay playlistId cua song
     @GetMapping("/{id}/playlist")
     public ResponseEntity<?> getSongPlaylistById(@PathVariable String id) {
         Optional<Song> songOpt = songService.getSongById(new ObjectId(id));
@@ -135,10 +136,7 @@ public class CommonSongController {
                 songToPlaylistMap.computeIfAbsent(songId, k -> new ArrayList<>()).add(playlist.getId());
             }
         }
-
-        SongResponse response = new SongResponse();
-        response.setPlaylistIds(songToPlaylistMap.getOrDefault(songIdStr, List.of()));
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(songToPlaylistMap.getOrDefault(songIdStr, List.of())); 
     }
 
     // get song by artistId
