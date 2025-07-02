@@ -69,6 +69,22 @@ public class CommonSongController {
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
+    // hàm lấy tất cả bài hát trong library của mình
+    public Set<String> getAllSongIdsInUserLibrary(String userId) {
+        Query query = new Query(Criteria.where("userId").is(userId));
+        query.fields().include("songs");
+
+        List<Playlist> playlists = mongoTemplate.find(query, Playlist.class);
+
+        Set<String> songIdSet = new HashSet<>();
+        for (Playlist p : playlists) {
+            if (p.getSongs() != null) {
+                songIdSet.addAll(p.getSongs());
+            }
+        }
+        return songIdSet;
+    }
+
     // get song by songId + trả về artistName
     @GetMapping("/{id}")
     public ResponseEntity<?> getSongById(@PathVariable ObjectId id) {
@@ -93,6 +109,46 @@ public class CommonSongController {
         response.setArtistName(artistName);
         response.setDuration(song.getDuration());
         response.setViews(song.getViews());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/playlist")
+    public ResponseEntity<?> getSongPlaylistById(@PathVariable String id) {
+        Optional<Song> songOpt = songService.getSongById(new ObjectId(id));
+        if (songOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Song not found!");
+        }
+
+        Song song = songOpt.get();
+        String songIdStr = song.getId().toString();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+        String myId = userDetails.getId().toString();
+
+        List<Playlist> userPlaylists = playlistRepository.findByUserId(myId);
+
+        Map<String, List<String>> songToPlaylistMap = new HashMap<>();
+        for (Playlist playlist : userPlaylists) {
+            for (String songId : playlist.getSongs()) {
+                songToPlaylistMap.computeIfAbsent(songId, k -> new ArrayList<>()).add(playlist.getId());
+            }
+        }
+
+        Set<String> songIdsInLibrary = getAllSongIdsInUserLibrary(myId);
+
+        SongResponse response = new SongResponse();
+        response.setId(song.getId());
+        response.setTitle(song.getTitle());
+        response.setDescription(song.getDescription());
+        response.setAudioUrl(song.getAudioUrl());
+        response.setCoverImageUrl(song.getCoverImageUrl());
+        response.setArtistId(song.getArtistId());
+        response.setDuration(song.getDuration());
+        response.setViews(song.getViews());
+        response.setPlaylistIds(songToPlaylistMap.getOrDefault(songIdStr, List.of()));
+        response.setIsInLibrary(songIdsInLibrary.contains(songIdStr));
 
         return ResponseEntity.ok(response);
     }
@@ -240,22 +296,6 @@ public class CommonSongController {
         return ResponseEntity.ok(responses);
     }
 
-    // hàm lấy tất cả bài hát trong library của mình
-    public Set<String> getAllSongIdsInUserLibrary(String userId) {
-        Query query = new Query(Criteria.where("userId").is(userId));
-        query.fields().include("songs");
-
-        List<Playlist> playlists = mongoTemplate.find(query, Playlist.class);
-
-        Set<String> songIdSet = new HashSet<>();
-        for (Playlist p : playlists) {
-            if (p.getSongs() != null) {
-                songIdSet.addAll(p.getSongs());
-            }
-        }
-        return songIdSet;
-    }
-
     @GetMapping("/search/multi")
     public ResponseEntity<?> searchAll(@RequestParam("keyword") String keyword) {
         if (!StringUtils.hasText(keyword)) {
@@ -308,7 +348,7 @@ public class CommonSongController {
             playlistQuery.addCriteria(Criteria.where("name").regex(".*" + Pattern.quote(keyword) + ".*", "i"));
         }
         List<Playlist> listplaylist = mongoTemplate.find(playlistQuery, Playlist.class);
-        //playlist kem theo isInLibrary
+        // playlist kem theo isInLibrary
         List<PlaylistResponse> playlists = listplaylist.stream().map(pll -> {
             PlaylistResponse res = new PlaylistResponse();
             res.setId(pll.getId());
