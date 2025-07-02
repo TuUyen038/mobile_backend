@@ -2,16 +2,17 @@ package com.example.mobile_be.controllers.admin;
 
 import java.util.Optional;
 
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
-
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,9 +35,6 @@ public class AdminGenreController {
     private ImageStorageService imageStorageService;
     @Autowired
     private MongoTemplate mongoTemplate;
-
-    // tao genre
-    // yeu cau: content Type: multipart/form-data bởi vì có chỉnh sửa cả file ảnh
 
     @PostMapping()
     public ResponseEntity<?> createGenre(@ModelAttribute GenreRequest data) {
@@ -66,7 +64,7 @@ public class AdminGenreController {
 
     // chinh sua genre
     // yeu cau: content Type: multipart/form-data bởi vì có chỉnh sửa cả file ảnh
-    @PutMapping("/{id}")
+    @PutMapping(value = "/api/admin/genres/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateGenre(@PathVariable String id, @ModelAttribute GenreRequest data) {
         ObjectId objectId;
         try {

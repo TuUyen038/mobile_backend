@@ -9,8 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mobile_be.dto.AuthResponse;
 import com.example.mobile_be.dto.LoginRequest;
@@ -79,22 +81,22 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         }
         String token = jwtUtil.generateToken(new UserDetailsImpl(user));
-boolean exists = playlistRepository.existsByUserIdAndName(user.getId(), "Favorites");
-if (!exists) {
-        try {
-            Playlist playlist = new Playlist();
-            playlist.setName("Favorites");
-            playlist.setDescription("A list of your favorite songs");
-            playlist.setUserId(user.getId());
-            playlist.setIsPublic(false);
-            playlist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
+        boolean exists = playlistRepository.existsByUserIdAndName(user.getId(), "Favorites");
+        if (!exists) {
+                try {
+                    Playlist playlist = new Playlist();
+                    playlist.setName("Favorites");
+                    playlist.setDescription("A list of your favorite songs");
+                    playlist.setUserId(user.getId());
+                    playlist.setIsPublic(false);
+                    playlist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
 
-            playlistRepository.save(playlist);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Loi o tao playlist: " + e.getMessage());
-        }}
-        return ResponseEntity.ok(new AuthResponse(token));
+                    playlistRepository.save(playlist);
+                } catch (Exception e) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("Loi o tao playlist: " + e.getMessage());
+                }}
+                return ResponseEntity.ok(new AuthResponse(token, user.getRole()));
     }
 
     // [POST] /api/resend-otp - Gửi lại OTP
@@ -116,7 +118,7 @@ if (!exists) {
         try {
             User user = userService.authenticate(request.getEmail(), request.getPassword());
             String token = jwtUtil.generateToken(new UserDetailsImpl(user));
-            return ResponseEntity.ok(new AuthResponse(token));
+            return ResponseEntity.ok(new AuthResponse(token, user.getRole()));
         } catch (UsernameNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         } catch (BadCredentialsException e) {

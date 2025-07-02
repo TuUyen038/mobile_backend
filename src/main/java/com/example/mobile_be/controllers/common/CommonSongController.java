@@ -5,10 +5,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -28,15 +31,22 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.mobile_be.dto.PlaylistResponse;
 import com.example.mobile_be.dto.SearchResponse;
+import com.example.mobile_be.dto.SongRequest;
 import com.example.mobile_be.dto.SongResponse;
 import com.example.mobile_be.dto.UserResponse;
+import com.example.mobile_be.models.Genre;
 import com.example.mobile_be.models.MultiResponse;
 import com.example.mobile_be.models.Playlist;
 import com.example.mobile_be.models.Song;
@@ -46,6 +56,7 @@ import com.example.mobile_be.repository.SongRepository;
 import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.security.UserDetailsImpl;
 import com.example.mobile_be.service.SongService;
+import com.example.mobile_be.service.ImageStorageService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -59,6 +70,8 @@ public class CommonSongController {
     private final SongRepository songRepository;
     private final UserRepository userRepository;
     private final PlaylistRepository playlistRepository;
+    private final ImageStorageService imageStorageService;
+
     @Autowired
     private MongoTemplate mongoTemplate;
 
@@ -67,6 +80,105 @@ public class CommonSongController {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         return userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+    }
+
+    @GetMapping("/popular")
+    public List<Song> getPopularSongs() {
+        return songRepository.findByOrderByViewsDesc();
+    }
+
+    // add song
+    @PostMapping("/add")
+    public ResponseEntity<?> addSong(@RequestPart("file") MultipartFile file, @RequestPart("title") String title,
+            @RequestPart("description") String description,
+            @RequestPart("coverImageUrl") String coverImageUrl) {
+        User user = getCurrentUser();
+
+        try {
+            Song song = new Song();
+            song.setArtistId(user.getId());
+            if (coverImageUrl != null && coverImageUrl.trim().length() != 0) {
+                song.setCoverImageUrl(coverImageUrl);
+            }
+            if (title != null && title.trim().length() != 0) {
+                song.setTitle(title);
+            }
+            if (description != null && description.trim().length() != 0) {
+                song.setDescription(description);
+            }
+            song.setIsPublic(false);
+            songService.saveSongFile(song, file);
+            return ResponseEntity.ok("Song added successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Upload file failed: " + e.getMessage());
+        }
+    }
+
+    // edit song (title, description, coverImageUrl, list of genreId)
+    @PutMapping("/edit/{id}")
+    public ResponseEntity<?> editSong(@PathVariable("id") String id, @ModelAttribute SongRequest request) {
+        getCurrentUser();
+
+        ObjectId oId = new ObjectId(id);
+        Optional<Song> song0 = songRepository.findById(oId);
+        if (song0.isEmpty()) {
+            return ResponseEntity.status(404).body("Song not found!!");
+        }
+        Song song = song0.get();
+        try {
+            if (request.getCoverImage() != null) {
+                try {
+                    String coverImageUrl = imageStorageService.saveFile(request.getCoverImage(), "songs");
+                    song.setCoverImageUrl(coverImageUrl);
+                } catch (IOException e) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("Upload cover image failed: " + e.getMessage());
+                }
+            }
+            if (request.getTitle() != null) {
+                song.setTitle(request.getTitle());
+            }
+            if (request.getDescription() != null) {
+                song.setDescription(request.getDescription());
+            }
+            if (request.getGenreId() != null && !request.getGenreId().isEmpty()) {
+
+                ArrayList<String> cleanedGenreIds = new ArrayList<>(new LinkedHashSet<>(request.getGenreId()));
+
+                song.setGenreId(cleanedGenreIds);
+            }
+            songRepository.save(song);
+            return ResponseEntity.ok(song);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Edit song failed: " + e.getMessage());
+        }
+    }
+
+    // remove song from genre
+    @PutMapping("{genreId}/remove/{songId}")
+    public ResponseEntity<?> removeSong(@PathVariable("genreId") String genreId,
+            @PathVariable("songId") String songId) {
+
+        ObjectId oId = new ObjectId(songId);
+        Optional<Song> song0 = songRepository.findById(oId);
+        if (song0.isEmpty()) {
+            return ResponseEntity.status(404).body("Song not found!!");
+        }
+        Song song = song0.get();
+        try {
+            if (song.getGenreId() != null && song.getGenreId().contains(genreId)) {
+                song.getGenreId().remove(genreId);
+                songRepository.save(song);
+                return ResponseEntity.ok("Song removed from genre successfully.");
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Song not found in the specified genre.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Remove song from genre failed: " + e.getMessage());
+        }
     }
 
     // get song by songId + trả về artistName
@@ -185,12 +297,6 @@ public class CommonSongController {
         return ResponseEntity.ok(newSongs);
     }
 
-    // @GetMapping("/recently")
-    // public ResponseEntity<?> getRecentlyPlayedSongs() {
-    // List<Song> recentSongs = songService.getRecentlyPlayedSongs();
-    // return ResponseEntity.ok(recentSongs);
-    // }
-
     // response trả về song dựa trên title của song hoặc tên của artist
     @GetMapping("/search")
     public ResponseEntity<?> searchSongsByKeyword(@RequestParam("keyword") String keyword) {
@@ -308,7 +414,7 @@ public class CommonSongController {
             playlistQuery.addCriteria(Criteria.where("name").regex(".*" + Pattern.quote(keyword) + ".*", "i"));
         }
         List<Playlist> listplaylist = mongoTemplate.find(playlistQuery, Playlist.class);
-        //playlist kem theo isInLibrary
+        // playlist kem theo isInLibrary
         List<PlaylistResponse> playlists = listplaylist.stream().map(pll -> {
             PlaylistResponse res = new PlaylistResponse();
             res.setId(pll.getId());
@@ -411,4 +517,12 @@ public class CommonSongController {
         return ResponseEntity.ok(songs);
     }
 
+    private String extractS3Key(String url) {
+        try {
+            URI uri = new URI(url);
+            return uri.getPath().substring(1);
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid S3 URL");
+        }
+    }
 }

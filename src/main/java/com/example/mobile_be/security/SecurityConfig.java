@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/login", "/api/register",
-                        "/api/verify-email","/api/resend-otp", "/api/password/**",
+                        "/api/verify-email","/api/resend-otp", "/api/password/**","/api/common/genres",
                         "/api/artist/song/**", "/error", "/uploads/**").permitAll()
                         .requestMatchers("/api/common/song/stream/**").permitAll()  
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

@@ -1,7 +1,4 @@
 package com.example.mobile_be.controllers.common;
-
-    
-
 import java.util.List;
 
 import org.bson.types.ObjectId;
@@ -14,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mobile_be.models.Genre;
 import com.example.mobile_be.repository.GenreRepository;
-import com.example.mobile_be.service.ImageStorageService;
 
 @RestController
 @RequestMapping("/api/common/genres")
