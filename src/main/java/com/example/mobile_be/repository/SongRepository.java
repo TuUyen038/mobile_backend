@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.bson.types.ObjectId;
+import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
@@ -23,7 +24,7 @@ public interface SongRepository extends MongoRepository<Song, ObjectId> {
 
     // public List<Song> findTop10ByOrderByLastPlayedAtDesc();
 
-    List<Song> findTop10ByOrderByCreatedAtDesc();
+    List<Song> findTop6ByIsPublicTrueOrderByCreatedAtDesc();
 
     List<Song> findByOrderByViewsDesc();
     
@@ -33,6 +34,5 @@ public interface SongRepository extends MongoRepository<Song, ObjectId> {
     List<Song> findByGenreId(String genreId);
     List<Song> findByArtistId(String artistId);
 
-   
 
 }

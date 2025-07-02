@@ -51,10 +51,6 @@ private MongoTemplate mongoTemplate;
         return UPLOAD_DIR;
     }
 
-    public List<Song> getNewReleaseSongs() {
-        return songRepository.findTop10ByOrderByCreatedAtDesc();
-    };
-
     // public List<Song> getRecentlyPlayedSongs(){
     // return songRepository.findTop10ByOrderByLastPlayedAtDesc();
     // };

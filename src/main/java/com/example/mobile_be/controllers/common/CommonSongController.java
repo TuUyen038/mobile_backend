@@ -73,6 +73,17 @@ public class CommonSongController {
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
+    @GetMapping("/recently-songs")
+    public ResponseEntity<?> getNewestSongs() {
+        List<Song> songs = songRepository.findTop6ByIsPublicTrueOrderByCreatedAtDesc();
+        songs.forEach(song -> {
+        System.out.println("Title: " + song.getTitle() +
+                           " | Public: " + song.getIsPublic() +
+                           " | CreatedAt: " + song.getCreatedAt());
+    });
+        return ResponseEntity.ok(songs);
+    }
+
     // hàm lấy tất cả bài hát trong library của mình
     public Set<String> getAllSongIdsInUserLibrary(String userId) {
         Query query = new Query(Criteria.where("userId").is(userId));
@@ -236,17 +247,6 @@ public class CommonSongController {
         }
     }
 
-    @GetMapping("/new-release")
-    public ResponseEntity<?> getNewReleaseSongs() {
-        List<Song> newSongs = songService.getNewReleaseSongs();
-        return ResponseEntity.ok(newSongs);
-    }
-
-    // @GetMapping("/recently")
-    // public ResponseEntity<?> getRecentlyPlayedSongs() {
-    // List<Song> recentSongs = songService.getRecentlyPlayedSongs();
-    // return ResponseEntity.ok(recentSongs);
-    // }
 
     // response trả về song dựa trên title của song hoặc tên của artist
     @GetMapping("/search")

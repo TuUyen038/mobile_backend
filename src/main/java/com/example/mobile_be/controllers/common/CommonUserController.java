@@ -1,21 +1,28 @@
 package com.example.mobile_be.controllers.common;
 
 import com.example.mobile_be.dto.ChangePasswordRequest;
+import com.example.mobile_be.dto.UserResponse;
 import com.example.mobile_be.models.User;
+import com.example.mobile_be.repository.SongRepository;
 import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.security.JwtUtil;
 import com.example.mobile_be.security.UserDetailsImpl;
+import com.example.mobile_be.service.ImageStorageService;
 import com.example.mobile_be.service.UserService;
 
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/common/users")
@@ -30,6 +37,31 @@ public class CommonUserController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private ImageStorageService imageStorageService;
+    @Autowired
+    SongRepository songRepository;
+
+   @GetMapping("/trending-artists")
+public ResponseEntity<?> getTrendingArtists() {
+    List<User> artistUsers = userRepository.findTrendingArtistsWithZeroView();
+
+    List<UserResponse> responses = artistUsers.stream().map(user -> {
+        UserResponse dto = new UserResponse();
+        dto.setId(user.getId());
+        dto.setEmail(user.getEmail());
+        dto.setFullName(user.getFullName());
+        dto.setRole(user.getRole());
+        dto.setAvatarUrl(user.getAvatarUrl());
+        dto.setIsVerified(user.getIsVerified());
+        dto.setIsVerifiedArtist(user.getIsVerifiedArtist());
+        return dto;
+    }).collect(Collectors.toList());
+
+    return ResponseEntity.ok(responses);
+}
+
+
 
     // [GET] http://localhost:8081/api/common/users/search?keyword=...
     // Tìm kiếm người dùng theo tên
@@ -65,36 +97,37 @@ public class CommonUserController {
         return parts[parts.length - 1];
     }
 
-    @PatchMapping("/me/change")
-    public ResponseEntity<?> patchUser(@AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestBody User userData) {
+    @PatchMapping(value = "/me/change", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> patchUser(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestPart(value = "fullName", required = false) String fullName,
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar) {
         if (userDetails == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
 
-        Optional<User> user = userRepository.findById(userDetails.getId());
-        if (user.isEmpty()) {
+        Optional<User> userOpt = userRepository.findById(userDetails.getId());
+        if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found in /me/change");
         }
 
-        User existingUser = user.get();
+        User existingUser = userOpt.get();
 
-        // if (userData.getEmail() != null) {
-        // existingUser.setEmail(userData.getEmail());
-        // }
-        if (userData.getAvatarUrl() != null) {
-            existingUser.setAvatarUrl(userData.getAvatarUrl());
+        if (avatar != null && !avatar.isEmpty()) {
+            try {
+                String url = imageStorageService.saveFile(avatar, "images");
+                existingUser.setAvatarUrl(url);
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Failed to upload avatar: " + e.getMessage());
+            }
+
         }
-        // if (userData.getBio() != null) {
-        // existingUser.setBio(userData.getBio());
-        // }
-        if (userData.getFullName() != null) {
-            existingUser.setFullName(userData.getFullName());
-            existingUser.setLastName(getLastName(userData.getFullName()));
+
+        if (fullName != null) {
+            existingUser.setFullName(fullName);
+            existingUser.setLastName(getLastName(fullName));
         }
-        // if (userData.getResetToken() != null) {
-        // existingUser.setResetToken(userData.getResetToken());
-        // }
 
         User updatedUser = userRepository.save(existingUser);
         return ResponseEntity.ok(updatedUser);

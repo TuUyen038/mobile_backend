@@ -2,6 +2,7 @@ package com.example.mobile_be.controllers.common;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,23 @@ public class CommonPlaylistController {
     return userRepository.findById(userDetails.getId())
         .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
   }
+
+  //getNewReleasePlaylists
+  @GetMapping("/new-releases")
+    public ResponseEntity<?> getNewReleasePlaylists() {
+        List<Playlist> playlists = playlistRepository.findTop6ByIsPublicTrueOrderByCreatedAtDesc();
+        return ResponseEntity.ok(playlists);
+    }
+
+  //getFeaturedPlaylists
+  @GetMapping("/featured")
+
+  public List<Playlist> getFeaturedPlaylists() {
+    List<Playlist> all = playlistRepository.findByIsPublicTrue();
+    Collections.shuffle(all);
+    return all.stream().limit(6).collect(Collectors.toList());
+}
+
 
   // [GET] http://localhost:8081/api/common/playlist
   // lấy tất cả playlist cua user
