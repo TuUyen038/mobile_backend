@@ -5,10 +5,15 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,16 +63,17 @@ public class SongController {
       userRepository = u;
       imageStorageService = i;
    }
- @Autowired
-    private MongoTemplate mongoTemplate;
 
-   //  public void renameArtistField() {
-   //      mongoTemplate.updateMulti(
-   //          Query.query(Criteria.where("artist_id").exists(true)),
-   //          new Update().rename("artist_id", "artistId"),
-   //          "song"  // hoặc Song.class nếu đã ánh xạ document
-   //      );
-   //  }
+   @Autowired
+   private MongoTemplate mongoTemplate;
+
+   // public void renameArtistField() {
+   // mongoTemplate.updateMulti(
+   // Query.query(Criteria.where("artist_id").exists(true)),
+   // new Update().rename("artist_id", "artistId"),
+   // "song" // hoặc Song.class nếu đã ánh xạ document
+   // );
+   // }
 
    private User getCurrentUser() {
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -78,25 +84,36 @@ public class SongController {
 
    // add song
    @PostMapping("/add")
-   public ResponseEntity<?> addSong(@RequestPart("file") MultipartFile file, @RequestPart("title") String title,
+   public ResponseEntity<?> addSong(
+         @RequestPart("file") MultipartFile file,
+         @RequestPart("title") String title,
          @RequestPart("description") String description,
-         @RequestPart("coverImageUrl") String coverImageUrl) {
+         @RequestPart("coverImageUrl") String coverImageUrl,
+         @RequestPart(value = "lyrics", required = false) MultipartFile lyrics) {
       User user = getCurrentUser();
 
       try {
          Song song = new Song();
          song.setArtistId(user.getId());
-         if (coverImageUrl != null && coverImageUrl.trim().length() != 0) {
+
+         if (coverImageUrl != null && !coverImageUrl.trim().isEmpty()) {
             song.setCoverImageUrl(coverImageUrl);
          }
-         if (title != null && title.trim().length() != 0) {
+
+         if (title != null && !title.trim().isEmpty()) {
             song.setTitle(title);
          }
-         if (description != null && description.trim().length() != 0) {
+
+         if (description != null && !description.trim().isEmpty()) {
             song.setDescription(description);
          }
+
+        
          song.setIsPublic(false);
+
          songService.saveSongFile(song, file);
+         songService.saveSongFile(song, lyrics);
+
          return ResponseEntity.ok("Song added successfully.");
       } catch (Exception e) {
          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -159,10 +176,10 @@ public class SongController {
          if (request.getDescription() != null) {
             song.setDescription(request.getDescription());
          }
-         if(request.getGenreId() != null && !request.getGenreId().isEmpty()) {
-            
+         if (request.getGenreId() != null && !request.getGenreId().isEmpty()) {
+
             ArrayList<String> cleanedGenreIds = new ArrayList<>(new LinkedHashSet<>(request.getGenreId()));
-            
+
             song.setGenreId(cleanedGenreIds);
          }
          songRepository.save(song);
@@ -173,7 +190,7 @@ public class SongController {
       }
    }
 
-   //remove song from genre
+   // remove song from genre
    @PutMapping("{genreId}/remove/{songId}")
    public ResponseEntity<?> removeSong(@PathVariable("genreId") String genreId, @PathVariable("songId") String songId) {
 

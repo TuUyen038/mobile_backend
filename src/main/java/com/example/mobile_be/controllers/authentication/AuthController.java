@@ -81,22 +81,42 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         }
         String token = jwtUtil.generateToken(new UserDetailsImpl(user));
+        //tao playlist Favorites
         boolean exists = playlistRepository.existsByUserIdAndName(user.getId(), "Favorites");
         if (!exists) {
-                try {
-                    Playlist playlist = new Playlist();
-                    playlist.setName("Favorites");
-                    playlist.setDescription("A list of your favorite songs");
-                    playlist.setUserId(user.getId());
-                    playlist.setIsPublic(false);
-                    playlist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
+            try {
+                Playlist playlist = new Playlist();
+                playlist.setName("Favorites");
+                playlist.setDescription("A list of your favorite songs");
+                playlist.setUserId(user.getId());
+                playlist.setIsPublic(false);
+                playlist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
+                playlist.setType("favourites");
+                playlistRepository.save(playlist);
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Loi o tao playlist: " + e.getMessage());
+            }
+        }
 
-                    playlistRepository.save(playlist);
-                } catch (Exception e) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Loi o tao playlist: " + e.getMessage());
-                }}
-                return ResponseEntity.ok(new AuthResponse(token, user.getRole()));
+        //tao playlist 
+        exists = playlistRepository.existsByUserIdAndName(user.getId(), "Your Songs");
+        if (!exists) {
+            try {
+                Playlist playlist = new Playlist();
+                playlist.setName("Your Songs");
+                playlist.setDescription("A list of your songs");
+                playlist.setUserId(user.getId());
+                playlist.setIsPublic(false);
+                playlist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
+                playlist.setType("your_songs");
+                playlistRepository.save(playlist);
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Loi o tao playlist: " + e.getMessage());
+            }
+        }
+        return ResponseEntity.ok(new AuthResponse(token));
     }
 
     // [POST] /api/resend-otp - Gửi lại OTP

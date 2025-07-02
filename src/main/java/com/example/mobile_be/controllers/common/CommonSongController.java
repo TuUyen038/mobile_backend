@@ -5,6 +5,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -181,7 +185,23 @@ public class CommonSongController {
         }
     }
 
-    // get song by songId + trả về artistName
+    // hàm lấy tất cả bài hát trong library của mình
+    public Set<String> getAllSongIdsInUserLibrary(String userId) {
+        Query query = new Query(Criteria.where("userId").is(userId));
+        query.fields().include("songs");
+
+        List<Playlist> playlists = mongoTemplate.find(query, Playlist.class);
+
+        Set<String> songIdSet = new HashSet<>();
+        for (Playlist p : playlists) {
+            if (p.getSongs() != null) {
+                songIdSet.addAll(p.getSongs());
+            }
+        }
+        return songIdSet;
+    }
+
+    // get song by songId + trả về artistName + co lyric
     @GetMapping("/{id}")
     public ResponseEntity<?> getSongById(@PathVariable ObjectId id) {
         Optional<Song> songOpt = songService.getSongById(id);
@@ -195,6 +215,16 @@ public class CommonSongController {
         Optional<User> artistOpt = userRepository.findById(new ObjectId(song.getArtistId()));
         String artistName = artistOpt.map(User::getFullName).orElse("Unknown Artist");
 
+        // tra ve lyric
+        String lyricPath = song.getLyricUrl();
+        List<String> lyrics = new ArrayList<>();
+        try {
+            Path path = Paths.get("." + lyricPath);
+            lyrics = Files.readAllLines(path, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.err.println("Lỗi đọc lyrics: " + e.getMessage());
+        }
+
         SongResponse response = new SongResponse();
         response.setId(song.getId());
         response.setTitle(song.getTitle());
@@ -205,8 +235,35 @@ public class CommonSongController {
         response.setArtistName(artistName);
         response.setDuration(song.getDuration());
         response.setViews(song.getViews());
+        response.setLyrics(lyrics);
 
         return ResponseEntity.ok(response);
+    }
+
+    // api lay playlistId cua song
+    @GetMapping("/{id}/playlist")
+    public ResponseEntity<?> getSongPlaylistById(@PathVariable String id) {
+        Optional<Song> songOpt = songService.getSongById(new ObjectId(id));
+        if (songOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Song not found!");
+        }
+
+        Song song = songOpt.get();
+        String songIdStr = song.getId().toString();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+        String myId = userDetails.getId().toString();
+
+        List<Playlist> userPlaylists = playlistRepository.findByUserId(myId);
+
+        Map<String, List<String>> songToPlaylistMap = new HashMap<>();
+        for (Playlist playlist : userPlaylists) {
+            for (String songId : playlist.getSongs()) {
+                songToPlaylistMap.computeIfAbsent(songId, k -> new ArrayList<>()).add(playlist.getId());
+            }
+        }
+        return ResponseEntity.ok(songToPlaylistMap.getOrDefault(songIdStr, List.of()));
     }
 
     // get song by artistId
@@ -344,22 +401,6 @@ public class CommonSongController {
         }).collect(Collectors.toList());
 
         return ResponseEntity.ok(responses);
-    }
-
-    // hàm lấy tất cả bài hát trong library của mình
-    public Set<String> getAllSongIdsInUserLibrary(String userId) {
-        Query query = new Query(Criteria.where("userId").is(userId));
-        query.fields().include("songs");
-
-        List<Playlist> playlists = mongoTemplate.find(query, Playlist.class);
-
-        Set<String> songIdSet = new HashSet<>();
-        for (Playlist p : playlists) {
-            if (p.getSongs() != null) {
-                songIdSet.addAll(p.getSongs());
-            }
-        }
-        return songIdSet;
     }
 
     @GetMapping("/search/multi")
