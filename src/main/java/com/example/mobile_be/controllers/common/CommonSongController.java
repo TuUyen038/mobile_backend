@@ -395,8 +395,8 @@ public class CommonSongController {
 
     // @GetMapping("/new-release")
     // public ResponseEntity<?> getNewReleaseSongs() {
-    //     List<Song> newSongs = songService.getNewReleaseSongs();
-    //     return ResponseEntity.ok(newSongs);
+    // List<Song> newSongs = songService.getNewReleaseSongs();
+    // return ResponseEntity.ok(newSongs);
     // }
 
     // response trả về song dựa trên title của song hoặc tên của artist

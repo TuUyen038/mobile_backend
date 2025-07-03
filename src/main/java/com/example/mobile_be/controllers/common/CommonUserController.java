@@ -15,7 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +43,24 @@ public class CommonUserController {
     private ImageStorageService imageStorageService;
     @Autowired
     SongRepository songRepository;
+
+    @PatchMapping("/switch-role")
+    public ResponseEntity<?> toggleUserRole() {
+        User currentUser = getCurrentUser();
+
+        String currentRole = currentUser.getRole();
+        
+        if (currentRole.equals("ROLE_USER")) {
+            currentUser.setRole("ROLE_ARTIST");
+        } else if (currentRole.equals("ROLE_ARTIST")) {
+            currentUser.setRole("ROLE_USER");
+        } else {
+            return ResponseEntity.badRequest().body("Unsupported role: " + currentRole);
+        }
+
+        userRepository.save(currentUser); 
+        return ResponseEntity.ok("User role updated to: " + currentUser.getRole());
+    }
 
     @GetMapping("/trending-artists")
     public ResponseEntity<?> getTrendingArtists() {
@@ -154,6 +174,13 @@ public class CommonUserController {
         userRepository.save(user);
 
         return ResponseEntity.ok("Password changed successfully");
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        return userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
 }
