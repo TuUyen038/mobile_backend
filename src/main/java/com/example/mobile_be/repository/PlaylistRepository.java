@@ -19,7 +19,7 @@ public interface PlaylistRepository extends MongoRepository<Playlist, ObjectId> 
 
   List<Playlist> findByUserIdAndIsPublicTrue(String userId);
 
-List<Playlist> findTop6ByIsPublicTrueOrderByCreatedAtDesc();
+  List<Playlist> findTop6ByIsPublicTrueOrderByCreatedAtDesc();
 
   List<Playlist> findByIsPublicTrue();
 }

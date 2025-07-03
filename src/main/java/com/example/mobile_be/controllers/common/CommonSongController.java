@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -377,12 +378,6 @@ public class CommonSongController {
                 bytesRemaining -= bytesRead;
             }
         }
-    }
-
-    @GetMapping("/new-release")
-    public ResponseEntity<?> getNewReleaseSongs() {
-        List<Song> newSongs = songService.getNewReleaseSongs();
-        return ResponseEntity.ok(newSongs);
     }
 
     // response trả về song dựa trên title của song hoặc tên của artist

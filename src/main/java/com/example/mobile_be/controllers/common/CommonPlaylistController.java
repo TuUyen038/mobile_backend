@@ -72,22 +72,27 @@ public class CommonPlaylistController {
         .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
   }
 
-  //getNewReleasePlaylists
+  // getNewReleasePlaylists
   @GetMapping("/new-releases")
-    public ResponseEntity<?> getNewReleasePlaylists() {
-        List<Playlist> playlists = playlistRepository.findTop6ByIsPublicTrueOrderByCreatedAtDesc();
-        return ResponseEntity.ok(playlists);
-    }
+  public ResponseEntity<?> getNewReleasePlaylists() {
+    List<Playlist> playlists = playlistRepository.findTop6ByIsPublicTrueOrderByCreatedAtDesc();
+    return ResponseEntity.ok(playlists);
+  }
 
-  //getFeaturedPlaylists
+  @GetMapping("/public-playlists")
+  public ResponseEntity<?> getAllPublicPlaylists() {
+    List<Playlist> playlists = playlistRepository.findByIsPublicTrue();
+    return ResponseEntity.ok(playlists);
+  }
+  
+
+  // getFeaturedPlaylists
   @GetMapping("/featured")
-
   public List<Playlist> getFeaturedPlaylists() {
     List<Playlist> all = playlistRepository.findByIsPublicTrue();
     Collections.shuffle(all);
     return all.stream().limit(6).collect(Collectors.toList());
-}
-
+  }
 
   // [GET] http://localhost:8081/api/common/playlist
   // lấy tất cả playlist cua user
@@ -158,7 +163,6 @@ public class CommonPlaylistController {
     if (!playlist.getUserId().equals(getCurrentUser().getId()) && !playlist.getIsPublic()) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
     }
-    
 
     List<ObjectId> songObjectIds = playlist.getSongs()
         .stream()
@@ -248,19 +252,19 @@ public class CommonPlaylistController {
       }
 
       playlistRepository.save(playlist);
-        
-        String playlistId = playlist.getId(); 
 
-        Library library = libraryRepository.findByUserId((playlist.getUserId()));
-        if (library == null) {
-            library = new Library();
-            library.setUserId(playlist.getUserId());
-            library.setPlaylistIds(new ArrayList<>());
-        }
+      String playlistId = playlist.getId();
 
-        library.getPlaylistIds().add(playlistId);
+      Library library = libraryRepository.findByUserId((playlist.getUserId()));
+      if (library == null) {
+        library = new Library();
+        library.setUserId(playlist.getUserId());
+        library.setPlaylistIds(new ArrayList<>());
+      }
 
-        libraryRepository.save(library);
+      library.getPlaylistIds().add(playlistId);
+
+      libraryRepository.save(library);
       return ResponseEntity.status(200).body("Playlist created successfully.");
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Loi o tao playlist: " + e.getMessage());
@@ -396,39 +400,39 @@ public class CommonPlaylistController {
   // [DELETE] http://localhost:8081/api/common/playlist/delete/{id}
   // xoá playlist
   @DeleteMapping("/delete/{id}")
-public ResponseEntity<?> deletePlaylist(@PathVariable String id) {
+  public ResponseEntity<?> deletePlaylist(@PathVariable String id) {
     try {
-        ObjectId objectId = new ObjectId(id);
-        Optional<Playlist> playlistOpt = playlistRepository.findById(objectId);
+      ObjectId objectId = new ObjectId(id);
+      Optional<Playlist> playlistOpt = playlistRepository.findById(objectId);
 
-        if (playlistOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
+      if (playlistOpt.isEmpty()) {
+        return ResponseEntity.notFound().build();
+      }
+
+      Playlist playlist = playlistOpt.get();
+      String currentUserId = getCurrentUser().getId();
+
+      // Kiểm tra quyền
+      if (!playlist.getUserId().equals(currentUserId)) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+      }
+
+      // Xoá playlist
+      playlistRepository.deleteById(objectId);
+
+      // Gỡ ID khỏi Library của user
+      Library library = libraryRepository.findByUserId((currentUserId));
+      if (library != null) {
+        List<String> playlistIds = library.getPlaylistIds();
+        if (playlistIds != null && playlistIds.remove(id)) {
+          libraryRepository.save(library);
         }
+      }
 
-        Playlist playlist = playlistOpt.get();
-        String currentUserId = getCurrentUser().getId();
-
-        // Kiểm tra quyền
-        if (!playlist.getUserId().equals(currentUserId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
-        }
-
-        // Xoá playlist
-        playlistRepository.deleteById(objectId);
-
-        // Gỡ ID khỏi Library của user
-        Library library = libraryRepository.findByUserId((currentUserId));
-        if (library != null) {
-            List<String> playlistIds = library.getPlaylistIds();
-            if (playlistIds != null && playlistIds.remove(id)) {
-                libraryRepository.save(library);
-            }
-        }
-
-        return ResponseEntity.ok("Playlist deleted successfully.");
+      return ResponseEntity.ok("Playlist deleted successfully.");
     } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi khi xoá playlist: " + e.getMessage());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi khi xoá playlist: " + e.getMessage());
     }
-}
+  }
 
 }
