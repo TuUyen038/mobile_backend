@@ -14,11 +14,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.mobile_be.dto.GenreRequest;
 import com.example.mobile_be.models.Genre;
@@ -64,8 +67,11 @@ public class AdminGenreController {
 
     // chinh sua genre
     // yeu cau: content Type: multipart/form-data bởi vì có chỉnh sửa cả file ảnh
-    @PutMapping(value = "/api/admin/genres/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> updateGenre(@PathVariable String id, @ModelAttribute GenreRequest data) {
+    @PutMapping(value = "/{id}")
+    public ResponseEntity<?> updateGenre(@PathVariable String id,
+            @RequestPart(value = "name", required = false) String name,
+            @RequestPart(value = "description", required = false) String description,
+            @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail) {
         ObjectId objectId;
         try {
             objectId = new ObjectId(id);
@@ -80,17 +86,17 @@ public class AdminGenreController {
 
         Genre genre = optionalGenre.get();
 
-        if (data.getName() != null && !data.getName().isEmpty()) {
-            genre.setName(data.getName());
+        if (name != null && !name.isEmpty()) {
+            genre.setName(name);
         }
 
-        if (data.getDescription() != null && !data.getDescription().isEmpty()) {
-            genre.setDescription(data.getDescription());
+        if (description != null && !description.isEmpty()) {
+            genre.setDescription(description);
         }
 
-        if (data.getThumbnail() != null && !data.getThumbnail().isEmpty()) {
+        if (thumbnail != null && !thumbnail.isEmpty()) {
             try {
-                String url = imageStorageService.saveFile(data.getThumbnail(), "images");
+                String url = imageStorageService.saveFile(thumbnail, "images");
                 genre.setThumbnailUrl(url);
             } catch (Exception e) {
                 return ResponseEntity

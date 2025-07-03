@@ -9,17 +9,14 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-
 @Document(collection = "feedback")
-
 public class Feedback extends BaseDocument {
     @Id
     private ObjectId id;
     private String userId;
     private String content;
-    private String status;
-    private String adminReply;
-
+    private int rating;
+    private String reply;
 
     public String getId() {
         return id != null ? id.toHexString() : null;
