@@ -24,16 +24,16 @@ public class AdminUserController {
     private final ArtistRequestRepository artistRequestRepository;
 
     // [GET] http://localhost:8081/api/admin/users
-    // Lấy tất cả người dùng
+    // Lấy danh sach user
     @GetMapping()
     public List<User> getAllUsers() {
-        return userRepository.findByIsVerifiedArtistFalse();
+        return userRepository.findByRole("ROLE_USER");
     }
 
     // Lay danh sach artist
     @GetMapping("/artists")
     public List<User> getAllArtist() {
-        return userRepository.findByIsVerifiedArtistTrue();
+        return userRepository.findByRole("ROLE_ARTIST");
     }
 
     // [GET] http://localhost:8081/api/admin/users/{id}

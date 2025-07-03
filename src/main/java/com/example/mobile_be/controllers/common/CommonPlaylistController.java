@@ -96,12 +96,24 @@ public class CommonPlaylistController {
 
   // [GET] http://localhost:8081/api/common/playlist
   // lấy tất cả playlist cua user
-  @GetMapping
-  public ResponseEntity<List<Playlist>> getAllPlaylists() {
+ @GetMapping
+public ResponseEntity<List<Playlist>> getAllPlaylists() {
     User user = getCurrentUser();
-    List<Playlist> playlists = playlistRepository.findByUserId(user.getId());
+
+    Library library = libraryRepository.findByUserId(user.getId());
+    if (library == null || library.getPlaylistIds().isEmpty()) {
+        return ResponseEntity.ok(List.of()); 
+    }
+
+    List<ObjectId> playlistIds = library.getPlaylistIds().stream()
+        .map(ObjectId::new)
+        .collect(Collectors.toList());
+
+    List<Playlist> playlists = playlistRepository.findAllById(playlistIds);
+
     return ResponseEntity.ok(playlists);
-  }
+}
+
 
   // [GET] http://localhost:8081/api/common/playlist/{playlistId}
   // lấy playlist theo ID
@@ -148,62 +160,72 @@ public class CommonPlaylistController {
 
   // lấy songs của playlist theo playlistId
   @GetMapping("/{playlistId}/songs")
-  public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
+public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
     ObjectId playlistObjId;
     try {
-      playlistObjId = new ObjectId(playlistId);
+        playlistObjId = new ObjectId(playlistId);
     } catch (IllegalArgumentException e) {
-      return ResponseEntity.badRequest().body("Invalid playlist ID");
+        return ResponseEntity.badRequest().body("Invalid playlist ID");
     }
 
     Playlist playlist = playlistRepository.findById(playlistObjId)
         .orElseThrow(() -> new RuntimeException("Playlist not found"));
 
-    // Check quyền
-    if (!playlist.getUserId().equals(getCurrentUser().getId()) && !playlist.getIsPublic()) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+    // Kiểm tra quyền truy cập
+    User currentUser = getCurrentUser();
+    if (!playlist.getUserId().equals(currentUser.getId()) && !Boolean.TRUE.equals(playlist.getIsPublic())) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
     }
 
-    List<ObjectId> songObjectIds = playlist.getSongs()
-        .stream()
+    // Lấy danh sách songId từ playlist
+    List<ObjectId> songObjectIds = playlist.getSongs().stream()
         .map(ObjectId::new)
         .toList();
-    String myId = null;
-    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof UserDetailsImpl) {
-      UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
-      myId = userDetails.getId().toString();
-    }
-    Set<String> songIdsInLibrary = getAllSongIdsInUserLibrary(myId);
 
-    List<Song> songsInDb = songRepository.findByIdIn(songObjectIds);
+    // Truy vấn các bài hát công khai có trong danh sách
+    List<Song> songsInDb = songRepository.findByIdInAndIsPublicTrue(songObjectIds);
 
-    // Tạo map để tra nhanh theo id
+    // Map<songId, Song> để giữ thứ tự ban đầu
     Map<String, Song> songMap = songsInDb.stream()
-        .collect(Collectors.toMap(song -> song.getId().toString(), Function.identity()));
+        .collect(Collectors.toMap(Song::getId, Function.identity()));
 
-    // Duyệt theo thứ tự gốc
+    // Lấy tất cả artistId từ songs
+    Set<ObjectId> artistObjectIds = songsInDb.stream()
+        .map(Song::getArtistId)
+        .map(ObjectId::new)
+        .collect(Collectors.toSet());
+
+    // Truy vấn các nghệ sĩ
+    List<User> artists = userRepository.findAllById(artistObjectIds);
+    Map<String, String> artistNameMap = artists.stream()
+        .collect(Collectors.toMap(User::getId, User::getFullName));
+
+    // Duyệt theo thứ tự ban đầu trong playlist
     List<SongResponse> orderedSongs = new ArrayList<>();
     for (String songId : playlist.getSongs()) {
-      Song song = songMap.get(songId);
-      if (song == null)
-        continue;
+        Song song = songMap.get(songId);
+        if (song == null) continue;
 
-      SongResponse res = new SongResponse();
-      res.setId(song.getId());
-      res.setTitle(song.getTitle());
-      res.setArtistId(song.getArtistId());
-      res.setAudioUrl(song.getAudioUrl());
-      res.setDuration(song.getDuration());
-      res.setViews(song.getViews());
-      res.setDescription(song.getDescription());
-      res.setCoverImageUrl(song.getCoverImageUrl());
-      res.setIsInLibrary(songIdsInLibrary.contains(song.getId()));
-      orderedSongs.add(res);
+        SongResponse res = new SongResponse();
+        res.setId(song.getId());
+        res.setTitle(song.getTitle());
+        res.setArtistId(song.getArtistId());
+        res.setAudioUrl(song.getAudioUrl());
+        res.setDuration(song.getDuration());
+        res.setViews(song.getViews());
+        res.setDescription(song.getDescription());
+        res.setCoverImageUrl(song.getCoverImageUrl());
+
+        String artistName = artistNameMap.getOrDefault(song.getArtistId(), "Unknown Artist");
+        res.setArtistName(artistName);
+
+        orderedSongs.add(res);
     }
 
     return ResponseEntity.ok(orderedSongs);
-  }
+}
+
+
 
   // Lấy playlist dựa vào artistId (playlist do co isPublic = true)
   @GetMapping("/artist/{artistId}")
@@ -224,7 +246,7 @@ public class CommonPlaylistController {
   // tìm kiếm playlist theo tên
   @GetMapping("/search")
   public ResponseEntity<List<Playlist>> searchPlaylistByName(@RequestParam String name) {
-    List<Playlist> playlists = playlistRepository.findByNameContainingIgnoreCase(name);
+    List<Playlist> playlists = playlistRepository.findByNameContainingIgnoreCaseAndIsPublicTrue(name);
     return ResponseEntity.ok(playlists);
   }
 
@@ -273,8 +295,6 @@ public class CommonPlaylistController {
 
   // [PATCH] http://localhost:8081/api/common/playlist/change/{playlistId}
   // Chỉ bao gồm thay đổi name, thumbnail, description, thu tu bai hat
-  // neu thay doi thuoc tinh khac thi mac du 200 OK nhung thuoc tinh do van k thay
-  // doi
   @PatchMapping("/change/{id}")
   public ResponseEntity<?> updateUser(@PathVariable("id") String id, @RequestBody Map<String, Object> updates) {
     ObjectId objectId = (new ObjectId(id));
@@ -303,18 +323,11 @@ public class CommonPlaylistController {
         @SuppressWarnings("unchecked")
         List<String> newOrder = (List<String>) updates.get("songs");
 
-        List<String> currentSongs = playlist.getSongs();
-        // check newOder co du va dung songsId khong
-        if (newOrder.size() != currentSongs.size() ||
-            !new HashSet<>(newOrder).equals(new HashSet<>(currentSongs))) {
-          return ResponseEntity.badRequest().body("Invalid song list: mismatched song IDs");
-        }
         playlist.setSongs(newOrder);
       } catch (ClassCastException e) {
         return ResponseEntity.badRequest().body("Invalid song list format");
       }
     }
-
     playlistRepository.save(playlist);
     return ResponseEntity.ok(playlist);
 
@@ -367,7 +380,6 @@ public class CommonPlaylistController {
         targetPlaylist.getSongs().add(songId);
       }
     }
-    System.out.println("hiiiiiiiiiiiii");
 
     playlistRepository.save(targetPlaylist);
     return ResponseEntity.ok("Songs added successfully");
