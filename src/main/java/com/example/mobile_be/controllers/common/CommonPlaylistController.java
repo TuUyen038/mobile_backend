@@ -1,5 +1,6 @@
 package com.example.mobile_be.controllers.common;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -84,7 +86,6 @@ public class CommonPlaylistController {
     List<Playlist> playlists = playlistRepository.findByIsPublicTrue();
     return ResponseEntity.ok(playlists);
   }
-  
 
   // getFeaturedPlaylists
   @GetMapping("/featured")
@@ -96,13 +97,13 @@ public class CommonPlaylistController {
 
   // [GET] http://localhost:8081/api/common/playlist
   // lấy tất cả playlist cua user
- @GetMapping
-public ResponseEntity<List<Playlist>> getAllPlaylists() {
+  @GetMapping
+  public ResponseEntity<List<Playlist>> getAllPlaylists() {
     User user = getCurrentUser();
 
     Library library = libraryRepository.findByUserId(user.getId());
     if (library == null || library.getPlaylistIds().isEmpty()) {
-        return ResponseEntity.ok(List.of()); 
+      return ResponseEntity.ok(List.of());
     }
 
     List<ObjectId> playlistIds = library.getPlaylistIds().stream()
@@ -112,8 +113,7 @@ public ResponseEntity<List<Playlist>> getAllPlaylists() {
     List<Playlist> playlists = playlistRepository.findAllById(playlistIds);
 
     return ResponseEntity.ok(playlists);
-}
-
+  }
 
   // [GET] http://localhost:8081/api/common/playlist/{playlistId}
   // lấy playlist theo ID
@@ -160,12 +160,12 @@ public ResponseEntity<List<Playlist>> getAllPlaylists() {
 
   // lấy songs của playlist theo playlistId
   @GetMapping("/{playlistId}/songs")
-public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
+  public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
     ObjectId playlistObjId;
     try {
-        playlistObjId = new ObjectId(playlistId);
+      playlistObjId = new ObjectId(playlistId);
     } catch (IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body("Invalid playlist ID");
+      return ResponseEntity.badRequest().body("Invalid playlist ID");
     }
 
     Playlist playlist = playlistRepository.findById(playlistObjId)
@@ -174,7 +174,7 @@ public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
     // Kiểm tra quyền truy cập
     User currentUser = getCurrentUser();
     if (!playlist.getUserId().equals(currentUser.getId()) && !Boolean.TRUE.equals(playlist.getIsPublic())) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
     }
 
     // Lấy danh sách songId từ playlist
@@ -203,29 +203,28 @@ public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
     // Duyệt theo thứ tự ban đầu trong playlist
     List<SongResponse> orderedSongs = new ArrayList<>();
     for (String songId : playlist.getSongs()) {
-        Song song = songMap.get(songId);
-        if (song == null) continue;
+      Song song = songMap.get(songId);
+      if (song == null)
+        continue;
 
-        SongResponse res = new SongResponse();
-        res.setId(song.getId());
-        res.setTitle(song.getTitle());
-        res.setArtistId(song.getArtistId());
-        res.setAudioUrl(song.getAudioUrl());
-        res.setDuration(song.getDuration());
-        res.setViews(song.getViews());
-        res.setDescription(song.getDescription());
-        res.setCoverImageUrl(song.getCoverImageUrl());
+      SongResponse res = new SongResponse();
+      res.setId(song.getId());
+      res.setTitle(song.getTitle());
+      res.setArtistId(song.getArtistId());
+      res.setAudioUrl(song.getAudioUrl());
+      res.setDuration(song.getDuration());
+      res.setViews(song.getViews());
+      res.setDescription(song.getDescription());
+      res.setCoverImageUrl(song.getCoverImageUrl());
 
-        String artistName = artistNameMap.getOrDefault(song.getArtistId(), "Unknown Artist");
-        res.setArtistName(artistName);
+      String artistName = artistNameMap.getOrDefault(song.getArtistId(), "Unknown Artist");
+      res.setArtistName(artistName);
 
-        orderedSongs.add(res);
+      orderedSongs.add(res);
     }
 
     return ResponseEntity.ok(orderedSongs);
-}
-
-
+  }
 
   // Lấy playlist dựa vào artistId (playlist do co isPublic = true)
   @GetMapping("/artist/{artistId}")
@@ -296,7 +295,11 @@ public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
   // [PATCH] http://localhost:8081/api/common/playlist/change/{playlistId}
   // Chỉ bao gồm thay đổi name, thumbnail, description, thu tu bai hat
   @PatchMapping("/change/{id}")
-  public ResponseEntity<?> updateUser(@PathVariable("id") String id, @RequestBody Map<String, Object> updates) {
+  public ResponseEntity<?> updatePlaylist(@PathVariable("id") String id,
+      @RequestPart(value="name", required = false) String name,
+      @RequestPart(value="description", required = false) String description,
+      @RequestPart(value="thumbnail", required = false) MultipartFile thumbnail,
+      @RequestPart(value = "songs", required = false) List<String> songs) {
     ObjectId objectId = (new ObjectId(id));
     Playlist playlist = playlistRepository.findById(objectId)
         .orElseThrow(() -> new RuntimeException("Playlist not found"));
@@ -305,29 +308,41 @@ public ResponseEntity<?> getSongsInPlaylist(@PathVariable String playlistId) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
     }
 
-    List<String> allowedFields = List.of("name", "description", "thumbnail");
-
-    updates.forEach((key, value) -> {
-      if (allowedFields.contains(key)) {
-        Field field = ReflectionUtils.findField(Playlist.class, key);
-        if (field != null) {
-          field.setAccessible(true);
-          ReflectionUtils.setField(field, playlist, value);
-        }
-      }
-    });
-
-    // Xử lý thay đổi thứ tự bài hát
-    if (updates.containsKey("songs")) {
+    if (name != null && !name.trim().isEmpty()) {
+      playlist.setName(name);
+    }
+    if (description != null && !description.trim().isEmpty()) {
+      playlist.setDescription(description);
+    }
+    if (songs != null) {
+      playlist.setSongs(songs);
+    }
+    if (thumbnail != null && !thumbnail.isEmpty()) {
       try {
-        @SuppressWarnings("unchecked")
-        List<String> newOrder = (List<String>) updates.get("songs");
-
-        playlist.setSongs(newOrder);
-      } catch (ClassCastException e) {
-        return ResponseEntity.badRequest().body("Invalid song list format");
+        String url = imageStorageService.saveFile(thumbnail, "images");
+        playlist.setThumbnailUrl(url);
+      } catch (IOException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body("Upload thumbnail failed: " + e.getMessage());
       }
     }
+
+    // updates.forEach((key, value) -> {
+    // if (allowedFields.contains(key)) {
+    // Field field = ReflectionUtils.findField(Playlist.class, key);
+    // if (field != null) {
+    // field.setAccessible(true);
+    // ReflectionUtils.setField(field, playlist, value);
+    // }
+    // }
+    // });
+
+    // // Xử lý thay đổi thứ tự bài hát
+    // if (updates.containsKey("songs")) {
+    // try {
+    // @SuppressWarnings("unchecked")
+    // List<String> newOrder = (List<String>) updates.get("songs");
+
     playlistRepository.save(playlist);
     return ResponseEntity.ok(playlist);
 

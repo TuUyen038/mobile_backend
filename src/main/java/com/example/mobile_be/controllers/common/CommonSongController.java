@@ -93,43 +93,37 @@ public class CommonSongController {
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
-    @GetMapping("/recently-songs")
-    public ResponseEntity<?> getNewestSongs() {
-        List<Song> songs = songRepository.findTop6ByIsPublicTrueOrderByCreatedAtDesc();
-        songs.forEach(song -> {
-            System.out.println("Title: " + song.getTitle() +
-                    " | Public: " + song.getIsPublic() +
-                    " | CreatedAt: " + song.getCreatedAt());
-        });
-        return ResponseEntity.ok(songs);
-    }
-
-    @GetMapping("/popular")
-    public List<Song> getPopularSongs() {
-        return songRepository.findByOrderByViewsDesc();
-    }
-
-    // add song
+    // them nhac
     @PostMapping("/add")
-    public ResponseEntity<?> addSong(@RequestPart("file") MultipartFile file, @RequestPart("title") String title,
+    public ResponseEntity<?> addSong(
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("title") String title,
             @RequestPart("description") String description,
-            @RequestPart("coverImageUrl") String coverImageUrl) {
+            @RequestPart("coverImage") MultipartFile coverImage,
+            @RequestPart(value = "genreId" , required = false) List<String> genreId,
+            @RequestPart(value = "lyrics", required = false) MultipartFile lyrics) {
         User user = getCurrentUser();
 
         try {
             Song song = new Song();
             song.setArtistId(user.getId());
-            if (coverImageUrl != null && coverImageUrl.trim().length() != 0) {
-                song.setCoverImageUrl(coverImageUrl);
-            }
-            if (title != null && title.trim().length() != 0) {
+            if (title != null && !title.trim().isEmpty()) {
                 song.setTitle(title);
             }
-            if (description != null && description.trim().length() != 0) {
+            if (description != null && !description.trim().isEmpty()) {
                 song.setDescription(description);
             }
+            if(genreId!=null) {
+                song.setGenreId(genreId);
+            }
             song.setIsPublic(false);
+            if (coverImage != null && !coverImage.isEmpty()) {
+                String url = imageStorageService.saveFile(coverImage, "images");
+                song.setCoverImageUrl(url);
+            }
             songService.saveSongFile(song, file);
+            songService.saveSongFile(song, lyrics);
+
             return ResponseEntity.ok("Song added successfully.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -151,7 +145,7 @@ public class CommonSongController {
         try {
             if (request.getCoverImage() != null) {
                 try {
-                    String coverImageUrl = imageStorageService.saveFile(request.getCoverImage(), "songs");
+                    String coverImageUrl = imageStorageService.saveFile(request.getCoverImage(), "images");
                     song.setCoverImageUrl(coverImageUrl);
                 } catch (IOException e) {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -178,30 +172,49 @@ public class CommonSongController {
         }
     }
 
-    // remove song from genre
-    @PutMapping("{genreId}/remove/{songId}")
-    public ResponseEntity<?> removeSong(@PathVariable("genreId") String genreId,
-            @PathVariable("songId") String songId) {
-
-        ObjectId oId = new ObjectId(songId);
-        Optional<Song> song0 = songRepository.findById(oId);
-        if (song0.isEmpty()) {
-            return ResponseEntity.status(404).body("Song not found!!");
-        }
-        Song song = song0.get();
-        try {
-            if (song.getGenreId() != null && song.getGenreId().contains(genreId)) {
-                song.getGenreId().remove(genreId);
-                songRepository.save(song);
-                return ResponseEntity.ok("Song removed from genre successfully.");
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Song not found in the specified genre.");
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Remove song from genre failed: " + e.getMessage());
-        }
+    @GetMapping("/recently-songs")
+    public ResponseEntity<?> getNewestSongs() {
+        List<Song> songs = songRepository.findTop6ByIsPublicTrueOrderByCreatedAtDesc();
+        songs.forEach(song -> {
+            System.out.println("Title: " + song.getTitle() +
+                    " | Public: " + song.getIsPublic() +
+                    " | CreatedAt: " + song.getCreatedAt());
+        });
+        return ResponseEntity.ok(songs);
     }
+
+    @GetMapping("/popular")
+    public List<Song> getPopularSongs() {
+        return songRepository.findByOrderByViewsDesc();
+    }
+
+    // add song
+    // @PostMapping("/add")
+    // public ResponseEntity<?> addSong(@RequestPart("file") MultipartFile file, @RequestPart("title") String title,
+    //         @RequestPart("description") String description,
+    //         @RequestPart("coverImageUrl") String coverImageUrl) {
+    //     User user = getCurrentUser();
+
+    //     try {
+    //         Song song = new Song();
+    //         song.setArtistId(user.getId());
+    //         if (coverImageUrl != null && coverImageUrl.trim().length() != 0) {
+    //             song.setCoverImageUrl(coverImageUrl);
+    //         }
+    //         if (title != null && title.trim().length() != 0) {
+    //             song.setTitle(title);
+    //         }
+    //         if (description != null && description.trim().length() != 0) {
+    //             song.setDescription(description);
+    //         }
+    //         song.setIsPublic(false);
+    //         songService.saveSongFile(song, file);
+    //         return ResponseEntity.ok("Song added successfully.");
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Upload file failed: " + e.getMessage());
+    //     }
+    // }
 
     // hàm lấy tất cả bài hát trong library của mình
     public Set<String> getAllSongIdsInUserLibrary(String userId) {
@@ -379,6 +392,12 @@ public class CommonSongController {
             }
         }
     }
+
+    // @GetMapping("/new-release")
+    // public ResponseEntity<?> getNewReleaseSongs() {
+    // List<Song> newSongs = songService.getNewReleaseSongs();
+    // return ResponseEntity.ok(newSongs);
+    // }
 
     // response trả về song dựa trên title của song hoặc tên của artist
     @GetMapping("/search")
