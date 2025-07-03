@@ -116,7 +116,7 @@ public class AuthController {
                         .body("Loi o tao playlist: " + e.getMessage());
             }
         }
-        return ResponseEntity.ok(new AuthResponse(token));
+        return ResponseEntity.ok(new AuthResponse(token, user.getRole()));
     }
 
     // [POST] /api/resend-otp - Gửi lại OTP
