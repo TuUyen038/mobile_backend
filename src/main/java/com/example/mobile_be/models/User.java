@@ -28,7 +28,7 @@ public class User extends BaseDocument {
     private String role;
     private String avatarUrl;
     private String bio;
-    private Boolean isVerifiedArtist;
+   // private Boolean isVerifiedArtist;
     private Boolean isVerified;
     private String resetToken;
     private List<String> recentlyPlayed = new ArrayList<>();

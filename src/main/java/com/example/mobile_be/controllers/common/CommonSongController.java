@@ -188,7 +188,7 @@ public class CommonSongController {
     // get song by artistId
     @GetMapping("/artist/{artistId}")
     public ResponseEntity<?> getSongByArtistId(@PathVariable String artistId) {
-        List<Song> songs = songRepository.findByArtistId(artistId);
+        List<Song> songs = songRepository.findByArtistIdAndIsPublicTrue(artistId);
         if (songs.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No result");
         }
@@ -273,21 +273,22 @@ public class CommonSongController {
         if (keyword == null || keyword.trim().isEmpty()) {
             return ResponseEntity.ok(List.of());
         }
-
+        // tim song theo title(k check song public hay k vi de thay duoc song nay ben fe
+        // da xu ly ispublic roi?)
         List<Song> songsByTitle = songRepository.findByTitleContainingIgnoreCase(keyword);
+        // tim artist theo fullname va role
+        List<User> artists = userRepository.findByRoleAndFullNameContainingIgnoreCase("ROLE_ARTIST", keyword);
 
-        List<User> artists = userRepository.findByFullNameContainingIgnoreCase(keyword);
         List<String> artistIds = artists.stream().map(User::getId).collect(Collectors.toList());
-        List<Song> songsByArtist = songRepository.findByArtistIdIn(artistIds);
+        List<Song> songsByArtist = songRepository.findByArtistIdInAndIsPublicTrue(artistIds);
 
         Map<String, Song> songMap = new HashMap<>();
         songsByTitle.forEach(song -> songMap.put(song.getId(), song));
         songsByArtist.forEach(song -> songMap.putIfAbsent(song.getId(), song));
         List<Song> matchedSongs = new ArrayList<>(songMap.values());
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
-        String myId = userDetails.getId().toString();
+        User u = getCurrentUser();
+        String myId = u.getId();
 
         List<Playlist> userPlaylists = playlistRepository.findByUserId(myId);
 
@@ -319,12 +320,12 @@ public class CommonSongController {
     @GetMapping("/search/multi")
     public ResponseEntity<?> searchAll(@RequestParam("keyword") String keyword) {
         if (!StringUtils.hasText(keyword)) {
-            return ResponseEntity.ok(new SearchResponse()); // trả về object trống
+            return ResponseEntity.ok(new SearchResponse());
         }
 
-        // 1. Lấy artist
+        // 1. Lấy artist by fullname va role
         List<UserResponse> artists = userRepository
-                .findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(keyword)
+                .findByRoleAndFullNameContainingIgnoreCase("ROLE_ARTIST", keyword)
                 .stream()
                 .map(art -> {
                     UserResponse res = new UserResponse();
@@ -333,31 +334,22 @@ public class CommonSongController {
                     res.setFullName(art.getFullName());
                     res.setRole(art.getRole());
                     res.setAvatarUrl(art.getAvatarUrl());
-                    res.setIsVerifiedArtist(art.getIsVerifiedArtist());
-                    res.setIsVerified(art.getIsVerified());
+                    // res.setIsVerified(art.getIsVerified());
                     return res;
                 })
                 .collect(Collectors.toList());
 
-        String myId = null;
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof UserDetailsImpl) {
-            UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
-            myId = userDetails.getId().toString();
-        }
-        final String finalMyId = myId;
+        User u = getCurrentUser();
+        String myId = u.getId();
 
-        // Load tất cả playlist của user (Library)
-        Set<String> playlistIdsInLibrary = mongoTemplate.find(
-                Query.query(Criteria.where("userId").is(finalMyId)), Playlist.class)
-                .stream()
-                .map(Playlist::getId)
-                .collect(Collectors.toSet());
+        // Load tất cả playlistId trong Library
+        Library lib = libraryRepository.findByUserId(myId);
+        Set<String> playlistIdsInLibrary = new HashSet<>(lib.getPlaylistIds());
 
         // playlist khong phai cua minh
         Criteria playlistCriteria = new Criteria().andOperator(
                 Criteria.where("isPublic").is(true),
-                Criteria.where("userId").ne(finalMyId));
+                Criteria.where("userId").ne(myId));
 
         Query playlistQuery = new Query(playlistCriteria);
 
@@ -378,10 +370,6 @@ public class CommonSongController {
             res.setIsInLibrary(playlistIdsInLibrary.contains(pll.getId()));
             return res;
         }).collect(Collectors.toList());
-        System.out.println("playlist: ");
-        for (PlaylistResponse playlistResponse : playlists) {
-            System.out.println(playlistResponse.getName());
-        }
 
         // song public hoac cua minh
         Criteria songCriteria = new Criteria();
@@ -404,7 +392,7 @@ public class CommonSongController {
         List<Song> listSong = mongoTemplate.find(songQuery, Song.class);
 
         // songs in library
-        Set<String> songIdsInLibrary = getAllSongIdsInUserLibrary(finalMyId);
+        Set<String> songIdsInLibrary = getAllSongIdsInUserLibrary(myId);
 
         // tra ve ket qua songs co isInlibrary
         List<SongResponse> songs = listSong.stream().map(song -> {
@@ -424,7 +412,6 @@ public class CommonSongController {
         // 4. Trộn kết quả
         List<MultiResponse> mixed = new ArrayList<>();
         int maxSize = Math.max(songs.size(), Math.max(playlists.size(), artists.size()));
-
         for (int i = 0; i < maxSize; i++) {
             if (i < songs.size()) {
                 mixed.add(new MultiResponse("song", songs.get(i)));
@@ -436,9 +423,7 @@ public class CommonSongController {
                 mixed.add(new MultiResponse("playlist", playlists.get(i)));
             }
         }
-
         return ResponseEntity.ok(mixed);
-
     }
 
     // filter

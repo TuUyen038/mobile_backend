@@ -42,26 +42,22 @@ public class CommonUserController {
     @Autowired
     SongRepository songRepository;
 
-   @GetMapping("/trending-artists")
-public ResponseEntity<?> getTrendingArtists() {
-    List<User> artistUsers = userRepository.findTrendingArtistsWithZeroView();
+    @GetMapping("/trending-artists")
+    public ResponseEntity<?> getTrendingArtists() {
+        List<User> artistUsers = userRepository.findTrendingArtistsWithZeroView();
 
-    List<UserResponse> responses = artistUsers.stream().map(user -> {
-        UserResponse dto = new UserResponse();
-        dto.setId(user.getId());
-        dto.setEmail(user.getEmail());
-        dto.setFullName(user.getFullName());
-        dto.setRole(user.getRole());
-        dto.setAvatarUrl(user.getAvatarUrl());
-        dto.setIsVerified(user.getIsVerified());
-        dto.setIsVerifiedArtist(user.getIsVerifiedArtist());
-        return dto;
-    }).collect(Collectors.toList());
+        List<UserResponse> responses = artistUsers.stream().map(user -> {
+            UserResponse dto = new UserResponse();
+            dto.setId(user.getId());
+            dto.setEmail(user.getEmail());
+            dto.setFullName(user.getFullName());
+            dto.setRole(user.getRole());
+            dto.setAvatarUrl(user.getAvatarUrl());
+            return dto;
+        }).collect(Collectors.toList());
 
-    return ResponseEntity.ok(responses);
-}
-
-
+        return ResponseEntity.ok(responses);
+    }
 
     // [GET] http://localhost:8081/api/common/users/search?keyword=...
     // Tìm kiếm người dùng theo tên
@@ -73,7 +69,8 @@ public ResponseEntity<?> getTrendingArtists() {
 
     @GetMapping("/search-artist")
     public ResponseEntity<?> searchArtistByName(@RequestParam String name) {
-        List<User> artists = userService.searchVerifiedArtists(name);
+        List<User> artists = userRepository.findByRoleAndFullNameContainingIgnoreCase("ROLE_ARTIST", name);
+
         return ResponseEntity.ok(artists);
     }
 
