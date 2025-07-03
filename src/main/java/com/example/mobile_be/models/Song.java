@@ -31,7 +31,7 @@ public class Song extends BaseDocument {
     private String audioUrl;
     private String coverImageUrl;
     @Indexed
-    private ArrayList<String> genreId=  new ArrayList<>();
+    private List<String> genreId=  new ArrayList<>();
     private Boolean isApproved;
     private Boolean isPublic;
     private String lyricUrl;
