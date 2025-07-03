@@ -20,9 +20,12 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.TextCriteria;
@@ -41,10 +44,12 @@ import com.example.mobile_be.dto.PlaylistResponse;
 import com.example.mobile_be.dto.SearchResponse;
 import com.example.mobile_be.dto.SongResponse;
 import com.example.mobile_be.dto.UserResponse;
+import com.example.mobile_be.models.Library;
 import com.example.mobile_be.models.MultiResponse;
 import com.example.mobile_be.models.Playlist;
 import com.example.mobile_be.models.Song;
 import com.example.mobile_be.models.User;
+import com.example.mobile_be.repository.LibraryRepository;
 import com.example.mobile_be.repository.PlaylistRepository;
 import com.example.mobile_be.repository.SongRepository;
 import com.example.mobile_be.repository.UserRepository;
@@ -63,6 +68,7 @@ public class CommonSongController {
     private final SongRepository songRepository;
     private final UserRepository userRepository;
     private final PlaylistRepository playlistRepository;
+    private final LibraryRepository libraryRepository;
     @Autowired
     private MongoTemplate mongoTemplate;
 
@@ -77,27 +83,41 @@ public class CommonSongController {
     public ResponseEntity<?> getNewestSongs() {
         List<Song> songs = songRepository.findTop6ByIsPublicTrueOrderByCreatedAtDesc();
         songs.forEach(song -> {
-        System.out.println("Title: " + song.getTitle() +
-                           " | Public: " + song.getIsPublic() +
-                           " | CreatedAt: " + song.getCreatedAt());
-    });
+            System.out.println("Title: " + song.getTitle() +
+                    " | Public: " + song.getIsPublic() +
+                    " | CreatedAt: " + song.getCreatedAt());
+        });
         return ResponseEntity.ok(songs);
     }
 
     // hàm lấy tất cả bài hát trong library của mình
     public Set<String> getAllSongIdsInUserLibrary(String userId) {
-        Query query = new Query(Criteria.where("userId").is(userId));
-        query.fields().include("songs");
-
-        List<Playlist> playlists = mongoTemplate.find(query, Playlist.class);
-
-        Set<String> songIdSet = new HashSet<>();
-        for (Playlist p : playlists) {
-            if (p.getSongs() != null) {
-                songIdSet.addAll(p.getSongs());
-            }
+        // 1. Lấy danh sách playlistIds từ Library
+        Library library = libraryRepository.findByUserId((userId));
+        if (library == null || library.getPlaylistIds() == null || library.getPlaylistIds().isEmpty()) {
+            return Collections.emptySet();
         }
-        return songIdSet;
+
+        List<ObjectId> playlistObjectIds = library.getPlaylistIds().stream()
+                .map(ObjectId::new)
+                .toList();
+
+        // 2. Aggregation pipeline: lấy ra tất cả songId trong các playlist
+        Aggregation agg = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("_id").in(playlistObjectIds)),
+                Aggregation.project("songs"),
+                Aggregation.unwind("songs"),
+                Aggregation.group().addToSet("songs").as("allSongs"));
+
+        AggregationResults<Document> result = mongoTemplate.aggregate(agg, "playlist", Document.class);
+        Document doc = result.getUniqueMappedResult();
+
+        if (doc != null && doc.containsKey("allSongs")) {
+            List<String> songs = (List<String>) doc.get("allSongs");
+            return new HashSet<>(songs);
+        }
+
+        return Collections.emptySet();
     }
 
     // get song by songId + trả về artistName + co lyric
@@ -246,7 +266,6 @@ public class CommonSongController {
             }
         }
     }
-
 
     // response trả về song dựa trên title của song hoặc tên của artist
     @GetMapping("/search")

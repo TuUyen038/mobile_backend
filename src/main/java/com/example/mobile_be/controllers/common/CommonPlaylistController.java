@@ -37,9 +37,11 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.mobile_be.dto.AddSongsRequest;
 import com.example.mobile_be.dto.PlaylistRequest;
 import com.example.mobile_be.dto.SongResponse;
+import com.example.mobile_be.models.Library;
 import com.example.mobile_be.models.Playlist;
 import com.example.mobile_be.models.Song;
 import com.example.mobile_be.models.User;
+import com.example.mobile_be.repository.LibraryRepository;
 import com.example.mobile_be.repository.PlaylistRepository;
 import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.repository.SongRepository;
@@ -54,6 +56,8 @@ public class CommonPlaylistController {
   private PlaylistRepository playlistRepository;
   @Autowired
   UserRepository userRepository;
+  @Autowired
+  LibraryRepository libraryRepository;
   @Autowired
   private ImageStorageService imageStorageService;
   @Autowired
@@ -242,7 +246,21 @@ public class CommonPlaylistController {
         playlist.setThumbnailUrl(url);
 
       }
+
       playlistRepository.save(playlist);
+        
+        String playlistId = playlist.getId(); 
+
+        Library library = libraryRepository.findByUserId((playlist.getUserId()));
+        if (library == null) {
+            library = new Library();
+            library.setUserId(playlist.getUserId());
+            library.setPlaylistIds(new ArrayList<>());
+        }
+
+        library.getPlaylistIds().add(playlistId);
+
+        libraryRepository.save(library);
       return ResponseEntity.status(200).body("Playlist created successfully.");
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Loi o tao playlist: " + e.getMessage());
@@ -255,7 +273,7 @@ public class CommonPlaylistController {
   // doi
   @PatchMapping("/change/{id}")
   public ResponseEntity<?> updateUser(@PathVariable("id") String id, @RequestBody Map<String, Object> updates) {
-    ObjectId objectId = new ObjectId(id);
+    ObjectId objectId = (new ObjectId(id));
     Playlist playlist = playlistRepository.findById(objectId)
         .orElseThrow(() -> new RuntimeException("Playlist not found"));
 
@@ -378,20 +396,39 @@ public class CommonPlaylistController {
   // [DELETE] http://localhost:8081/api/common/playlist/delete/{id}
   // xoá playlist
   @DeleteMapping("/delete/{id}")
-  public ResponseEntity<?> deletePlaylist(@PathVariable String id) {
-    ObjectId objectId = new ObjectId(id);
-    Optional<Playlist> playlistOpt = playlistRepository.findById(objectId);
+public ResponseEntity<?> deletePlaylist(@PathVariable String id) {
+    try {
+        ObjectId objectId = new ObjectId(id);
+        Optional<Playlist> playlistOpt = playlistRepository.findById(objectId);
 
-    if (playlistOpt.isEmpty()) {
-      return ResponseEntity.notFound().build();
+        if (playlistOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Playlist playlist = playlistOpt.get();
+        String currentUserId = getCurrentUser().getId();
+
+        // Kiểm tra quyền
+        if (!playlist.getUserId().equals(currentUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+        }
+
+        // Xoá playlist
+        playlistRepository.deleteById(objectId);
+
+        // Gỡ ID khỏi Library của user
+        Library library = libraryRepository.findByUserId((currentUserId));
+        if (library != null) {
+            List<String> playlistIds = library.getPlaylistIds();
+            if (playlistIds != null && playlistIds.remove(id)) {
+                libraryRepository.save(library);
+            }
+        }
+
+        return ResponseEntity.ok("Playlist deleted successfully.");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi khi xoá playlist: " + e.getMessage());
     }
+}
 
-    Playlist playlist = playlistOpt.get();
-    if (!playlist.getUserId().equals(getCurrentUser().getId())) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
-    }
-
-    playlistRepository.deleteById(objectId);
-    return ResponseEntity.ok().build();
-  }
 }

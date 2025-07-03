@@ -1,8 +1,11 @@
 package com.example.mobile_be.controllers.authentication;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +19,10 @@ import com.example.mobile_be.dto.AuthResponse;
 import com.example.mobile_be.dto.LoginRequest;
 import com.example.mobile_be.dto.RegisterRequest;
 import com.example.mobile_be.dto.VerifyRequest;
+import com.example.mobile_be.models.Library;
 import com.example.mobile_be.models.Playlist;
 import com.example.mobile_be.models.User;
+import com.example.mobile_be.repository.LibraryRepository;
 import com.example.mobile_be.repository.PlaylistRepository;
 import com.example.mobile_be.repository.UserRepository;
 import com.example.mobile_be.security.JwtUtil;
@@ -40,6 +45,8 @@ public class AuthController {
 
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private LibraryRepository libraryRepository;
 
     public AuthController(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
@@ -74,46 +81,69 @@ public class AuthController {
         if (!success) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired OTP.");
         }
+
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         }
+
         String token = jwtUtil.generateToken(new UserDetailsImpl(user));
-        //tao playlist Favorites
-        boolean exists = playlistRepository.existsByUserIdAndName(user.getId(), "Favorites");
-        if (!exists) {
+
+        // Chuẩn bị danh sách playlist mặc định
+        List<String> defaultPlaylistIds = new ArrayList<>();
+
+        // Favorites
+        if (!playlistRepository.existsByUserIdAndName(user.getId(), "Favorites")) {
             try {
-                Playlist playlist = new Playlist();
-                playlist.setName("Favorites");
-                playlist.setDescription("A list of your favorite songs");
-                playlist.setUserId(user.getId());
-                playlist.setIsPublic(false);
-                playlist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
-                playlist.setType("favourites");
-                playlistRepository.save(playlist);
+                Playlist favorites = new Playlist();
+                favorites.setName("Favorites");
+                favorites.setDescription("A list of your favorite songs");
+                favorites.setUserId(user.getId());
+                favorites.setIsPublic(false);
+                favorites.setThumbnailUrl("/uploads/playlists/default-img.jpg");
+                favorites.setType("favourites");
+
+                playlistRepository.save(favorites);
+                defaultPlaylistIds.add(favorites.getId()); // Lưu ID vào danh sách
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("Loi o tao playlist: " + e.getMessage());
+                        .body("Lỗi khi tạo playlist Favorites: " + e.getMessage());
             }
         }
 
-        //tao playlist 
-        exists = playlistRepository.existsByUserIdAndName(user.getId(), "Your Songs");
-        if (!exists) {
+        // Your Songs
+        if (!playlistRepository.existsByUserIdAndName(user.getId(), "Your Songs")) {
             try {
-                Playlist playlist = new Playlist();
-                playlist.setName("Your Songs");
-                playlist.setDescription("A list of your songs");
-                playlist.setUserId(user.getId());
-                playlist.setIsPublic(false);
-                playlist.setThumbnailUrl("/uploads/playlists/default-img.jpg");
-                playlist.setType("your_songs");
-                playlistRepository.save(playlist);
+                Playlist yourSongs = new Playlist();
+                yourSongs.setName("Your Songs");
+                yourSongs.setDescription("A list of your songs");
+                yourSongs.setUserId(user.getId());
+                yourSongs.setIsPublic(false);
+                yourSongs.setThumbnailUrl("/uploads/playlists/default-img.jpg");
+                yourSongs.setType("your_songs");
+
+                playlistRepository.save(yourSongs);
+                defaultPlaylistIds.add(yourSongs.getId());
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("Loi o tao playlist: " + e.getMessage());
+                        .body("Lỗi khi tạo playlist Your Songs: " + e.getMessage());
             }
         }
+
+        Library library = libraryRepository.findByUserId(user.getId());
+        if (library == null) {
+            library = new Library();
+            library.setUserId(user.getId());
+            library.setPlaylistIds(new ArrayList<>());
+        }
+
+        for (String pid : defaultPlaylistIds) {
+            if (!library.getPlaylistIds().contains(pid)) {
+                library.getPlaylistIds().add(pid);
+            }
+        }
+
+        libraryRepository.save(library);
         return ResponseEntity.ok(new AuthResponse(token));
     }
 
