@@ -76,7 +76,7 @@ public class UserService implements UserDetailsService {
         user.setLastName(getLastName(request.getFullName()));
         user.setRole(request.getRole());
         user.setIsVerified(true);
-        user.setIsVerifiedArtist(false);
+       // user.setIsVerifiedArtist(false);
 
         userRepository.save(user);
         return true;
@@ -137,7 +137,5 @@ public class UserService implements UserDetailsService {
         return true;
     }
 
-    public List<User> searchVerifiedArtists(String name) {
-        return userRepository.findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(name);
-    }
+    
 }

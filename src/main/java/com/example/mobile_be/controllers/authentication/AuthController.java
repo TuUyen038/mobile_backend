@@ -103,7 +103,7 @@ public class AuthController {
                 favorites.setUserId(user.getId());
                 favorites.setIsPublic(false);
                 favorites.setThumbnailUrl("/uploads/playlists/default-img.jpg");
-                favorites.setType("favourites");
+                favorites.setPlaylistType("favourites");
 
                 playlistRepository.save(favorites);
                 defaultPlaylistIds.add(favorites.getId()); // Lưu ID vào danh sách
@@ -122,7 +122,7 @@ public class AuthController {
                 yourSongs.setUserId(user.getId());
                 yourSongs.setIsPublic(false);
                 yourSongs.setThumbnailUrl("/uploads/playlists/default-img.jpg");
-                yourSongs.setType("your_songs");
+                yourSongs.setPlaylistType("your_songs");
 
                 playlistRepository.save(yourSongs);
                 defaultPlaylistIds.add(yourSongs.getId());

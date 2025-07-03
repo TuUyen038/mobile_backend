@@ -21,11 +21,10 @@ public interface UserRepository extends MongoRepository<User, ObjectId> {
 
     Optional<User> findByResetToken(String token);
 
-    List<User> findByIsVerifiedArtistFalse();
+ //   List<User> findByIsVerifiedArtistFalse();
 
-    List<User> findByIsVerifiedArtistTrue();
+   // List<User> findByIsVerifiedArtistTrue();
 
-    List<User> findByFullNameContainingIgnoreCaseAndIsVerifiedArtistTrue(String name);
 
     @Aggregation(pipeline = {
             "{ $match: { role: 'ROLE_ARTIST' } }",
@@ -34,6 +33,11 @@ public interface UserRepository extends MongoRepository<User, ObjectId> {
             "{ $sort: { totalViews: -1 } }",
             "{ $limit: 6 }"
     })
-    List<User> findTrendingArtistsWithZeroView(); // 👈 trả về User trực tiếp
+    List<User> findTrendingArtistsWithZeroView(); 
+
+    List<User> findByRoleAndFullNameContainingIgnoreCase(String role, String fullName);
+    List<User> findByRole(String role);
+
+
 
 }
