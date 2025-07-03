@@ -88,29 +88,24 @@ public class SongController {
          @RequestPart("file") MultipartFile file,
          @RequestPart("title") String title,
          @RequestPart("description") String description,
-         @RequestPart("coverImageUrl") String coverImageUrl,
+         @RequestPart("coverImage") MultipartFile coverImage,
          @RequestPart(value = "lyrics", required = false) MultipartFile lyrics) {
       User user = getCurrentUser();
 
       try {
          Song song = new Song();
          song.setArtistId(user.getId());
-
-         if (coverImageUrl != null && !coverImageUrl.trim().isEmpty()) {
-            song.setCoverImageUrl(coverImageUrl);
-         }
-
          if (title != null && !title.trim().isEmpty()) {
             song.setTitle(title);
          }
-
          if (description != null && !description.trim().isEmpty()) {
             song.setDescription(description);
          }
-
-        
          song.setIsPublic(false);
-
+         if (coverImage != null && !coverImage.isEmpty()) {
+            String url = imageStorageService.saveFile(coverImage, "images");
+            song.setCoverImageUrl(url);
+         }
          songService.saveSongFile(song, file);
          songService.saveSongFile(song, lyrics);
 
@@ -163,7 +158,7 @@ public class SongController {
       try {
          if (request.getCoverImage() != null) {
             try {
-               String coverImageUrl = imageStorageService.saveFile(request.getCoverImage(), "songs");
+               String coverImageUrl = imageStorageService.saveFile(request.getCoverImage(), "images");
                song.setCoverImageUrl(coverImageUrl);
             } catch (IOException e) {
                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
