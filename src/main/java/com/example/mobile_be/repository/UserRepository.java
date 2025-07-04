@@ -1,14 +1,13 @@
 package com.example.mobile_be.repository;
 
-import com.example.mobile_be.models.User;
-
 import java.util.List;
 import java.util.Optional;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
+
+import com.example.mobile_be.models.User;
 
 public interface UserRepository extends MongoRepository<User, ObjectId> {
     List<User> findByFullNameContainingIgnoreCase(String keyword);
@@ -21,9 +20,9 @@ public interface UserRepository extends MongoRepository<User, ObjectId> {
 
     Optional<User> findByResetToken(String token);
 
- //   List<User> findByIsVerifiedArtistFalse();
+   List<User> findByIsVerifiedArtistFalse();
 
-   // List<User> findByIsVerifiedArtistTrue();
+   List<User> findByIsVerifiedArtistTrue();
 
 
     @Aggregation(pipeline = {
@@ -37,7 +36,4 @@ public interface UserRepository extends MongoRepository<User, ObjectId> {
 
     List<User> findByRoleAndFullNameContainingIgnoreCase(String role, String fullName);
     List<User> findByRole(String role);
-
-
-
 }
