@@ -1,4 +1,4 @@
-package com.example.mobile_be.controllers.admin;
+package com.example.mobile_be.controllers.common;
 
 import com.example.mobile_be.repository.FeedbackRepository;
 import com.example.mobile_be.repository.UserRepository;
@@ -19,11 +19,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("api/common/feedbacks")
+@RequestMapping("/api/common/feedbacks")
 public class CommonFeedbackController {
 
     @Autowired
@@ -51,7 +50,7 @@ public class CommonFeedbackController {
 
     // ✅ Người dùng xem các feedback của chính họ
     @GetMapping("/me")
-    public ResponseEntity<Feedback> getMyFeedbacks() {
+    public ResponseEntity<List<Feedback>> getMyFeedbacks() {
         User currentUser = getCurrentUser();
         List<Feedback> feedbacks = feedbackRepository.findByUserId(currentUser.getId());
         return ResponseEntity.ok(feedbacks);
