@@ -36,7 +36,7 @@ public class EmailService {
     String subject = "Mã OTP đặt lại mật khẩu tài khoản";
     String content = "Bạn đã yêu cầu đặt lại mật khẩu.\n"
         + "Mã OTP của bạn là: " + otp + "\n\n"
-        + "Mã OTP có hiệu lực trong 30 phút.\n"
+        + "Mã OTP có hiệu lực trong 5 phút.\n"
         + "Nếu bạn không yêu cầu điều này, hãy bỏ qua email này.";
 
     sendEmail(to, subject, content);
