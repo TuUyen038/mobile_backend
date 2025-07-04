@@ -21,9 +21,9 @@ public interface UserRepository extends MongoRepository<User, ObjectId> {
 
     Optional<User> findByResetToken(String token);
 
- //   List<User> findByIsVerifiedArtistFalse();
+   List<User> findByIsVerifiedArtistFalse();
 
-   // List<User> findByIsVerifiedArtistTrue();
+   List<User> findByIsVerifiedArtistTrue();
 
 
     @Aggregation(pipeline = {
